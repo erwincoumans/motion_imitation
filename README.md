@@ -37,7 +37,7 @@ For parallel training with MPI run:
 
 ## Testing Models
 
-To test a trained model, run the following command 
+To test a trained model, run the following command
 
 ``python3 motion_imitation/run.py --mode test --motion_file motion_imitation/data/motions/dog_pace.txt --model_file motion_imitation/data/policies/dog_pace.zip --visualize``
 
@@ -48,6 +48,8 @@ To test a trained model, run the following command
 
 - `motion_imitation/data/motions/` contains different reference motion clips.
 - `motion_imitation/data/policies/` contains pretrained models for the different reference motions.
+
+For more information on the reference motion data format, see the [DeepMimic documentation](https://github.com/xbpeng/DeepMimic)
 
 ---
 
