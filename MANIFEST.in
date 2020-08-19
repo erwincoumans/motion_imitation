@@ -1,0 +1,6 @@
+include MANIFEST.in *.txt
+recursive-include motion_imitation *.*
+recursive-include third_party *.*
+recursive-include third_party *
+recursive-include mpc_controller *.*
+include .
