@@ -7,7 +7,7 @@ from __future__ import print_function
 
 import copy
 import math
-import gin
+
 import numpy as np
 from typing import Any, Mapping, Sequence, Tuple
 
@@ -84,7 +84,7 @@ def _gen_swing_foot_trajectory(input_phase: float, start_pos: Sequence[float],
   return (x, y, z)  # pytype: disable=bad-return-type
 
 
-@gin.configurable
+
 class RaibertSwingLegController(leg_controller.LegController):
   """Controls the swing leg position using Raibert's formula.
 

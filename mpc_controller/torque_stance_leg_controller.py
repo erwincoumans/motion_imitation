@@ -7,7 +7,7 @@ from __future__ import division
 from __future__ import print_function
 
 from typing import Any, Sequence, Tuple
-import gin
+
 import numpy as np
 import pybullet as p
 import gait_generator as gait_generator_lib
@@ -26,7 +26,7 @@ _PLANNING_HORIZON_STEPS = 10
 _PLANNING_TIMESTEP = 0.025
 
 
-@gin.configurable
+
 class TorqueStanceLegController(leg_controller.LegController):
   """A torque based stance leg controller framework.
 

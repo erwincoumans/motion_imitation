@@ -7,7 +7,7 @@ from __future__ import print_function
 
 import logging
 import math
-import gin
+
 import numpy as np
 from typing import Any, Sequence
 import gait_generator
@@ -24,7 +24,7 @@ _NOMINAL_DUTY_FACTOR = (0.5, 0.5, 0.5, 0.5)
 _NOMINAL_CONTACT_DETECTION_PHASE = 0.1
 
 
-@gin.configurable
+
 class OpenloopGaitGenerator(gait_generator.GaitGenerator):
   """Generates openloop gaits for quadruped robots.
 
