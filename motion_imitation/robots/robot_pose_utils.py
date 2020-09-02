@@ -14,14 +14,21 @@
 # limitations under the License.
 
 """This file implements the robot specific pose tools."""
+
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
+
 import math
 
 import attr
 import numpy as np
 
-from robots import laikago_pose_utils
-from robots import minitaur_pose_utils
-from robots import laikago
+from motion_imitation.robots import laikago_pose_utils
+from motion_imitation.robots import minitaur_pose_utils
+from motion_imitation.robots import laikago
 
 _ABDUCTION_ACTION_INDEXES = [0, 3, 6, 9]
 

@@ -13,6 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
+
 import argparse
 from mpi4py import MPI
 import numpy as np
@@ -21,9 +27,9 @@ import random
 import tensorflow as tf
 import time
 
-import envs.env_builder as env_builder
-import learning.imitation_policies as imitation_policies
-import learning.ppo_imitation as ppo_imitation
+from motion_imitation.envs import env_builder as env_builder
+from motion_imitation.learning import imitation_policies as imitation_policies
+from motion_imitation.learning import ppo_imitation as ppo_imitation
 
 from stable_baselines.common.callbacks import CheckpointCallback
 
@@ -129,7 +135,7 @@ def main():
   arg_parser = argparse.ArgumentParser()
   arg_parser.add_argument("--seed", dest="seed", type=int, default=None)
   arg_parser.add_argument("--mode", dest="mode", type=str, default="train")
-  arg_parser.add_argument("--motion_file", dest="motion_file", type=str, default="motion_imitation/data/motions/laikago_dog_pace.txt")
+  arg_parser.add_argument("--motion_file", dest="motion_file", type=str, default="motion_imitation/data/motions/dog_pace.txt")
   arg_parser.add_argument("--visualize", dest="visualize", action="store_true", default=False)
   arg_parser.add_argument("--output_dir", dest="output_dir", type=str, default="output")
   arg_parser.add_argument("--num_test_episodes", dest="num_test_episodes", type=int, default=None)

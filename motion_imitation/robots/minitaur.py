@@ -18,16 +18,22 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
+
 import collections
 import copy
 import math
 import re
 import numpy as np
-from robots import minitaur_constants
-from robots import minitaur_motor
-from robots import robot_config
-from robots import action_filter
-from robots import kinematics
+from motion_imitation.robots import minitaur_constants
+from motion_imitation.robots import minitaur_motor
+from motion_imitation.robots import robot_config
+from motion_imitation.robots import action_filter
+from motion_imitation.robots import kinematics
 
 INIT_POSITION = [0, 0, .2]
 INIT_RACK_POSITION = [0, 0, 1]

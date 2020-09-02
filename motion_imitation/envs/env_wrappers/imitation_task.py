@@ -19,14 +19,20 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
+
 import logging
 import os
 import numpy as np
 
-from envs.env_wrappers import imitation_terminal_conditions
-from utilities import pose3d
-from utilities import motion_data
-from utilities import motion_util
+from motion_imitation.envs.env_wrappers import imitation_terminal_conditions
+from motion_imitation.utilities import pose3d
+from motion_imitation.utilities import motion_data
+from motion_imitation.utilities import motion_util
 from pybullet_utils import transformations
 
 

@@ -13,6 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
+
+
 """Pybullet simulation of a Laikago robot."""
 import math
 import os
@@ -20,12 +27,12 @@ import re
 import numpy as np
 import pybullet as pyb
 
-from robots import laikago_pose_utils
-from robots import laikago_constants
-from robots import laikago_motor
-from robots import minitaur
-from robots import robot_config
-from envs import locomotion_gym_config
+from motion_imitation.robots import laikago_pose_utils
+from motion_imitation.robots import laikago_constants
+from motion_imitation.robots import laikago_motor
+from motion_imitation.robots import minitaur
+from motion_imitation.robots import robot_config
+from motion_imitation.envs import locomotion_gym_config
 
 NUM_MOTORS = 12
 NUM_LEGS = 4

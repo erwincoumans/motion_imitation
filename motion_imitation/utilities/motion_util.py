@@ -15,9 +15,15 @@
 
 """Utility functions for processing motion clips."""
 
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
+
 import numpy as np
 
-from utilities import pose3d
+from motion_imitation.utilities import pose3d
 from pybullet_utils import transformations
 
 

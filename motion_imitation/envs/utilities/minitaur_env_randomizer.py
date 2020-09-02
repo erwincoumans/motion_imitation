@@ -18,10 +18,18 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
+
+
 import random
 import numpy as np
 from six.moves import range
-from envs.utilities import env_randomizer_base
+from motion_imitation.envs.utilities import env_randomizer_base
 
 # Relative range.
 MINITAUR_BASE_MASS_ERROR_RANGE = (-0.2, 0.2)  # 0.2 means 20%

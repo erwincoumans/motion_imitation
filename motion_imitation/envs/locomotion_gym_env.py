@@ -14,6 +14,13 @@
 # limitations under the License.
 
 """This file implements the locomotion gym env."""
+
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
+
 import collections
 import time
 import gym
@@ -24,8 +31,8 @@ import pybullet
 import pybullet_utils.bullet_client as bullet_client
 import pybullet_data as pd
 
-from envs.sensors import sensor
-from envs.sensors import space_utils
+from motion_imitation.envs.sensors import sensor
+from motion_imitation.envs.sensors import space_utils
 
 
 _ACTION_EPS = 0.01

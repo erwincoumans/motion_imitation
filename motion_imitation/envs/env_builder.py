@@ -13,19 +13,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from envs import locomotion_gym_env
-from envs import locomotion_gym_config
-from envs.env_wrappers import imitation_wrapper_env
-from envs.env_wrappers import observation_dictionary_to_array_wrapper
-from envs.env_wrappers import trajectory_generator_wrapper_env
-from envs.env_wrappers import simple_openloop
-from envs.env_wrappers import imitation_task
-from envs.sensors import environment_sensors
-from envs.sensors import sensor_wrappers
-from envs.sensors import robot_sensors
-from envs.utilities import controllable_env_randomizer_from_config
-from robots import laikago
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
 
+from motion_imitation.envs import locomotion_gym_env
+from motion_imitation.envs import locomotion_gym_config
+from motion_imitation.envs.env_wrappers import imitation_wrapper_env
+from motion_imitation.envs.env_wrappers import observation_dictionary_to_array_wrapper
+from motion_imitation.envs.env_wrappers import trajectory_generator_wrapper_env
+from motion_imitation.envs.env_wrappers import simple_openloop
+from motion_imitation.envs.env_wrappers import imitation_task
+from motion_imitation.envs.sensors import environment_sensors
+from motion_imitation.envs.sensors import sensor_wrappers
+from motion_imitation.envs.sensors import robot_sensors
+from motion_imitation.envs.utilities import controllable_env_randomizer_from_config
+from motion_imitation.robots import laikago
 
 def build_imitation_env(motion_files, num_parallel_envs, mode,
                         enable_randomizer, enable_rendering):

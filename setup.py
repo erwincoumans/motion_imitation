@@ -216,15 +216,15 @@ print(find_packages('.'))
 
 
 setup(
-    name='mpc_osqp',
-    version='0.0.1',
+    name='motion_imitation',
+    version='0.0.2',
     description=
-    'python bindings for MPC using the osqp solver',
+    'Motion Imitation and MPC with python bindings for MPC using the osqp solver',
     long_description=
     'tbd',
-    url='tbd',
-    author='tbd',
-    author_email='tbd',
+    url='https://github.com/google-research/motion_imitation',
+    author='Erwin Coumans',
+    author_email='erwincoumans@google.com',
     license='mixed',
     platforms='any',
     keywords=[

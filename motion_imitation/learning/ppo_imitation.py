@@ -13,6 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
+
 import time
 from collections import deque
 
@@ -33,7 +39,7 @@ from stable_baselines.common.runners import traj_segment_generator
 from stable_baselines.trpo_mpi.utils import add_vtarg_and_adv
 from stable_baselines.ppo1 import pposgd_simple
 
-from learning.imitation_runners import traj_segment_generator
+from motion_imitation.learning.imitation_runners import traj_segment_generator
 
 
 def add_vtarg_and_adv(seg, gamma, lam):

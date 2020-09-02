@@ -19,11 +19,17 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
+
 import numpy as np
 import typing
 
 from robots import minitaur_pose_utils
-from envs.sensors import sensor
+from motion_imitation.envs.sensors import sensor
 
 _ARRAY = typing.Iterable[float]
 _FLOAT_OR_ARRAY = typing.Union[float, _ARRAY]

@@ -19,9 +19,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
+
 import gym
 
-from envs.utilities import env_utils
+from motion_imitation.envs.utilities import env_utils
 
 
 class ObservationDictionaryToArrayWrapper(gym.Env):

@@ -21,13 +21,13 @@ import time
 import pybullet
 import random
 
-import com_velocity_estimator
-import gait_generator as gait_generator_lib
-import locomotion_controller
-import openloop_gait_generator
-import raibert_swing_leg_controller
-import torque_stance_leg_controller
-import laikago_sim
+from mpc_controller import com_velocity_estimator
+from mpc_controller import gait_generator as gait_generator_lib
+from mpc_controller import locomotion_controller
+from mpc_controller import openloop_gait_generator
+from mpc_controller import raibert_swing_leg_controller
+from mpc_controller import torque_stance_leg_controller
+from mpc_controller import laikago_sim
 
 FLAGS = flags.FLAGS
 

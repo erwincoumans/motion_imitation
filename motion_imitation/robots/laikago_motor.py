@@ -14,11 +14,16 @@
 # limitations under the License.
 
 """Motor model for laikago."""
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
 
 import collections
 import numpy as np
 
-from robots import robot_config
+from motion_imitation.robots import robot_config
 
 NUM_MOTORS = 12
 
