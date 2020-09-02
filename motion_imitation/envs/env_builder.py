@@ -26,11 +26,40 @@ from motion_imitation.envs.env_wrappers import observation_dictionary_to_array_w
 from motion_imitation.envs.env_wrappers import trajectory_generator_wrapper_env
 from motion_imitation.envs.env_wrappers import simple_openloop
 from motion_imitation.envs.env_wrappers import imitation_task
+from motion_imitation.envs.env_wrappers import default_task
 from motion_imitation.envs.sensors import environment_sensors
 from motion_imitation.envs.sensors import sensor_wrappers
 from motion_imitation.envs.sensors import robot_sensors
 from motion_imitation.envs.utilities import controllable_env_randomizer_from_config
 from motion_imitation.robots import laikago
+
+
+def build_laikago_env( enable_rendering):
+
+  sim_params = locomotion_gym_config.SimulationParameters()
+  sim_params.enable_rendering = enable_rendering
+
+  gym_config = locomotion_gym_config.LocomotionGymConfig(simulation_parameters=sim_params)
+
+  robot_class = laikago.Laikago
+
+  sensors = [
+      robot_sensors.MotorAngleSensor(num_motors=laikago.NUM_MOTORS),
+      robot_sensors.IMUSensor(),
+      environment_sensors.LastActionSensor(num_actions=laikago.NUM_MOTORS)
+  ]
+
+  task = default_task.DefaultTask()
+
+  env = locomotion_gym_env.LocomotionGymEnv(gym_config=gym_config, robot_class=robot_class,
+                                            robot_sensors=sensors, task=task)
+
+  env = observation_dictionary_to_array_wrapper.ObservationDictionaryToArrayWrapper(env)
+  env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(env,
+                                                                       trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(action_limit=laikago.UPPER_BOUND))
+
+  return env
+
 
 def build_imitation_env(motion_files, num_parallel_envs, mode,
                         enable_randomizer, enable_rendering):
