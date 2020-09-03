@@ -71,7 +71,7 @@ class LocomotionGymEnv(gym.Env):
       ValueError: If the num_action_repeat is less than 1.
 
     """
-
+    
     self.seed()
     self._gym_config = gym_config
     self._robot_class = robot_class
@@ -214,7 +214,15 @@ class LocomotionGymEnv(gym.Env):
       self._robot = self._robot_class(
           pybullet_client=self._pybullet_client,
           sensors=self._robot_sensors,
-          on_rack=self._on_rack)
+          on_rack=self._on_rack,
+          action_repeat = self._gym_config.simulation_parameters.num_action_repeat,
+          motor_control_mode = self._gym_config.simulation_parameters.motor_control_mode,
+          reset_time = self._gym_config.simulation_parameters.reset_time,
+          enable_clip_motor_commands = self._gym_config.simulation_parameters.enable_clip_motor_commands,
+          enable_action_filter = self._gym_config.simulation_parameters.enable_action_filter,
+          enable_action_interpolation = self._gym_config.simulation_parameters.enable_action_interpolation,
+          allow_knee_contact = self._gym_config.simulation_parameters.allow_knee_contact
+          )
 
     # Reset the pose of the robot.
     self._robot.Reset(

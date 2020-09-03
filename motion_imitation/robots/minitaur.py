@@ -107,7 +107,8 @@ class Minitaur(object):
                reset_at_current_position=False,
                sensors=None,
                enable_action_interpolation=False,
-               enable_action_filter=False):
+               enable_action_filter=False,
+               reset_time = -1):
     """Constructs a minitaur and reset it to the initial states.
 
     Args:
@@ -157,6 +158,7 @@ class Minitaur(object):
       enable_action_filter: Boolean specifying if a lowpass filter should be
         used to smooth actions.
     """
+    
     self.num_motors = num_motors
     self.num_legs = self.num_motors // dofs_per_leg
     self._pybullet_client = pybullet_client
@@ -176,6 +178,7 @@ class Minitaur(object):
     self._leg_link_ids = []
     self._motor_link_ids = []
     self._foot_link_ids = []
+    
     self._motor_overheat_protection = motor_overheat_protection
     self._on_rack = on_rack
     self._reset_at_current_position = reset_at_current_position
@@ -210,6 +213,7 @@ class Minitaur(object):
     else:
       self._motor_torque_limits = motor_torque_limits
 
+    
     self._motor_control_mode = motor_control_mode
     self._motor_model = motor_model_class(
         kp=motor_kp,
@@ -227,9 +231,10 @@ class Minitaur(object):
 
     if self._enable_action_filter:
       self._action_filter = self._BuildActionFilter()
+    
     # reset_time=-1.0 means skipping the reset motion.
     # See Reset for more details.
-    self.Reset(reset_time=-1.0)
+    self.Reset(reset_time=reset_time)
     self.ReceiveObservation()
 
     return
@@ -318,6 +323,7 @@ class Minitaur(object):
     self._leg_link_ids = []
     self._motor_link_ids = []
     self._foot_link_ids = []
+    
     self._bracket_link_ids = []
     for i in range(num_joints):
       joint_info = self._pybullet_client.getJointInfo(self.quadruped, i)
@@ -331,6 +337,7 @@ class Minitaur(object):
         self._motor_link_ids.append(joint_id)
       elif _KNEE_NAME_PATTERN.match(joint_name):
         self._foot_link_ids.append(joint_id)
+        
       elif (_LEG_NAME_PATTERN1.match(joint_name) or
             _LEG_NAME_PATTERN2.match(joint_name) or
             _LEG_NAME_PATTERN3.match(joint_name)):
@@ -913,6 +920,7 @@ class Minitaur(object):
     """
     self.last_action_time = self._state_action_counter * self.time_step
     control_mode = motor_control_mode
+    
     if control_mode is None:
       control_mode = self._motor_control_mode
 

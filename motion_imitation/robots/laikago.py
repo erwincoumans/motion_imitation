@@ -124,10 +124,13 @@ class Laikago(minitaur.Minitaur):
       control_latency=0.002,
       on_rack=False,
       enable_action_interpolation=True,
-      enable_action_filter=True
+      enable_action_filter=True,
+      motor_control_mode = None,
+      reset_time = -1,
+      allow_knee_contact = False,
   ):
     self._urdf_filename = urdf_filename
-
+    self._allow_knee_contact = allow_knee_contact
     self._enable_clip_motor_commands = enable_clip_motor_commands
 
     motor_kp = [ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN,
@@ -150,6 +153,7 @@ class Laikago(minitaur.Minitaur):
         motor_direction=JOINT_DIRECTIONS,
         motor_offset=JOINT_OFFSETS,
         motor_overheat_protection=False,
+        motor_control_mode=motor_control_mode,
         motor_model_class=laikago_motor.LaikagoMotorModel,
         sensors=sensors,
         motor_kp=motor_kp,
@@ -157,7 +161,9 @@ class Laikago(minitaur.Minitaur):
         control_latency=control_latency,
         on_rack=on_rack,
         enable_action_interpolation=enable_action_interpolation,
-        enable_action_filter=enable_action_filter)
+        enable_action_filter=enable_action_filter,
+        reset_time = reset_time
+        )
 
     return
 
@@ -255,7 +261,7 @@ class Laikago(minitaur.Minitaur):
     self._motor_link_ids = []
     self._knee_link_ids = []
     self._foot_link_ids = []
-
+    
     for i in range(num_joints):
       joint_info = self._pybullet_client.getJointInfo(self.quadruped, i)
       joint_name = joint_info[1].decode("UTF-8")
@@ -275,7 +281,8 @@ class Laikago(minitaur.Minitaur):
 
     self._leg_link_ids.extend(self._knee_link_ids)
     self._leg_link_ids.extend(self._foot_link_ids)
-    self._foot_link_ids.extend(self._knee_link_ids)
+    if self._allow_knee_contact:
+      self._foot_link_ids.extend(self._knee_link_ids)
 
     self._chassis_link_ids.sort()
     self._motor_link_ids.sort()

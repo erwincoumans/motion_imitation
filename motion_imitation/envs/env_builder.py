@@ -34,11 +34,17 @@ from motion_imitation.envs.utilities import controllable_env_randomizer_from_con
 from motion_imitation.robots import laikago
 
 
-def build_laikago_env( enable_rendering):
+def build_laikago_env( motor_control_mode, enable_rendering):
 
   sim_params = locomotion_gym_config.SimulationParameters()
   sim_params.enable_rendering = enable_rendering
-
+  sim_params.motor_control_mode = motor_control_mode
+  sim_params.reset_time = 2
+  sim_params.num_action_repeat = 10
+  sim_params.enable_action_interpolation = False
+  sim_params.enable_action_filter = False
+  sim_params.enable_clip_motor_commands = False
+  
   gym_config = locomotion_gym_config.LocomotionGymConfig(simulation_parameters=sim_params)
 
   robot_class = laikago.Laikago
@@ -54,9 +60,9 @@ def build_laikago_env( enable_rendering):
   env = locomotion_gym_env.LocomotionGymEnv(gym_config=gym_config, robot_class=robot_class,
                                             robot_sensors=sensors, task=task)
 
-  env = observation_dictionary_to_array_wrapper.ObservationDictionaryToArrayWrapper(env)
-  env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(env,
-                                                                       trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(action_limit=laikago.UPPER_BOUND))
+  #env = observation_dictionary_to_array_wrapper.ObservationDictionaryToArrayWrapper(env)
+  #env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(env,
+  #                                                                     trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(action_limit=laikago.UPPER_BOUND))
 
   return env
 
@@ -70,6 +76,7 @@ def build_imitation_env(motion_files, num_parallel_envs, mode,
   
   sim_params = locomotion_gym_config.SimulationParameters()
   sim_params.enable_rendering = enable_rendering
+  sim_params.allow_knee_contact = True
 
   gym_config = locomotion_gym_config.LocomotionGymConfig(simulation_parameters=sim_params)
 
