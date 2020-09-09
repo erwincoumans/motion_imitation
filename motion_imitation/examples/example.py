@@ -26,12 +26,14 @@ import random
 import time
 
 from motion_imitation.envs import env_builder as env_builder
+from motion_imitation.robots import robot_config
 
+from motion_imitation.robots import laikago
 
 def test(env):
   o = env.reset()
   while 1:
-    a = [0]*12
+    a = laikago.INIT_MOTOR_ANGLES
     o, r, done, info = env.step(a)
     if done:
         o = env.reset()
@@ -44,7 +46,7 @@ def main():
 
   args = arg_parser.parse_args()
  
-  env = env_builder.build_laikago_env( enable_rendering=args.visualize)
+  env = env_builder.build_laikago_env( motor_control_mode = robot_config.MotorControlMode.POSITION, enable_rendering=args.visualize)
   
   test(env=env)
   

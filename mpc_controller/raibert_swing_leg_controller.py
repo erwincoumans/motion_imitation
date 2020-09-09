@@ -85,7 +85,7 @@ def _gen_swing_foot_trajectory(input_phase: float, start_pos: Sequence[float],
   max_clearance = 0.1
   mid = max(end_pos[2], start_pos[2]) + max_clearance
   z = _gen_parabola(phase, start_pos[2], mid, end_pos[2])
-
+  
   # PyType detects the wrong return type here.
   return (x, y, z)  # pytype: disable=bad-return-type
 
@@ -105,10 +105,10 @@ class RaibertSwingLegController(leg_controller.LegController):
       robot: Any,
       gait_generator: Any,
       state_estimator: Any,
-      desired_speed: Tuple[float] = (0, 0),
-      desired_twisting_speed: float = 0,
-      desired_height: float = 0.45,
-      foot_clearance: float = _FOOT_CLEARANCE_M,
+      desired_speed: Tuple[float],
+      desired_twisting_speed: float,
+      desired_height: float,
+      foot_clearance: float,
   ):
     """Initializes the class.
 

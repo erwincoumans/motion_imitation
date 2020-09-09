@@ -1,7 +1,14 @@
 import re
 import numpy as np
 
+URDF_NAME = "laikago/laikago_toes_zup.urdf"
+START_POS = [0, 0, 0.48]
 
+MPC_BODY_MASS = 215/9.8
+MPC_BODY_INERTIA = (0.07335, 0, 0, 0, 0.25068, 0, 0, 0, 0.25447)
+MPC_BODY_HEIGHT = 0.42
+
+MPC_VELOCITY_MULTIPLIER = 1.0
 
 time_step = 0.001
 ACTION_REPEAT = 10

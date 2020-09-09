@@ -27,13 +27,16 @@ from mpc_controller import locomotion_controller
 from mpc_controller import openloop_gait_generator
 from mpc_controller import raibert_swing_leg_controller
 from mpc_controller import torque_stance_leg_controller
-from mpc_controller import laikago_sim
+
+#uncomment the robot of choice
+from mpc_controller import laikago_sim as robot_sim
+#from mpc_controller import a1_sim as robot_sim
 
 FLAGS = flags.FLAGS
 
 
 _NUM_SIMULATION_ITERATION_STEPS = 300
-_BODY_HEIGHT = 0.42
+
 _STANCE_DURATION_SECONDS = [
     0.3
 ] * 4  # For faster trotting (v > 1.5 ms reduce this to 0.13s).
@@ -52,9 +55,10 @@ LAIKAGO_STANDING = (
 
 def _generate_example_linear_angular_speed(t):
   """Creates an example speed profile based on time for demo purpose."""
-  vx = 0.6
-  vy = 0.2
-  wz = 0.8
+  vx = 0.6 * robot_sim.MPC_VELOCITY_MULTIPLIER
+  vy = 0.2 * robot_sim.MPC_VELOCITY_MULTIPLIER
+  wz = 0.8 * robot_sim.MPC_VELOCITY_MULTIPLIER
+  
   time_points = (0, 5, 10, 15, 20, 25,30)
   speed_points = ((0, 0, 0, 0), (0, 0, 0, wz), (vx, 0, 0, 0), (0, 0, 0, -wz), (0, -vy, 0, 0),
                   (0, 0, 0, 0), (0, 0, 0, wz))
@@ -87,17 +91,19 @@ def _setup_controller(robot):
       state_estimator,
       desired_speed=desired_speed,
       desired_twisting_speed=desired_twisting_speed,
-      desired_height=_BODY_HEIGHT,
+      desired_height=robot_sim.MPC_BODY_HEIGHT,
+      foot_clearance = 0.01
   )
+        
   st_controller = torque_stance_leg_controller.TorqueStanceLegController(
       robot,
       gait_generator,
       state_estimator,
       desired_speed=desired_speed,
       desired_twisting_speed=desired_twisting_speed,
-      desired_body_height=_BODY_HEIGHT,
-      body_mass=215 / 9.8,
-      body_inertia=(0.07335, 0, 0, 0, 0.25068, 0, 0, 0, 0.25447),
+      desired_body_height=robot_sim.MPC_BODY_HEIGHT,
+      body_mass=robot_sim.MPC_BODY_MASS,
+      body_inertia=robot_sim.MPC_BODY_INERTIA
   )
 
   controller = locomotion_controller.LocomotionController(
@@ -120,16 +126,28 @@ def _update_controller_params(controller, lin_speed, ang_speed):
 def _run_example(max_time=_MAX_TIME_SECONDS):
   """Runs the locomotion controller example."""
   
-  p = bullet_client.BulletClient(
-          connection_mode=pybullet.GUI)    
+  #recording video requires ffmpeg in the path
+  record_video = False
+  if record_video:
+    p = pybullet
+    p.connect(p.GUI, options="--width=1280 --height=720 --mp4=\"test.mp4\" --mp4fps=100")
+    p.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING,1)
+  else:
+     p = bullet_client.BulletClient(
+         connection_mode=pybullet.GUI)    
+         
+  
+  p.configureDebugVisualizer(p.COV_ENABLE_GUI,0)
+  p.configureDebugVisualizer(p.COV_ENABLE_RENDERING,0)
+  
   p.setAdditionalSearchPath(pd.getDataPath())
   
   num_bullet_solver_iterations = int(_NUM_SIMULATION_ITERATION_STEPS /
-                                             laikago_sim.ACTION_REPEAT)
+                                             robot_sim.ACTION_REPEAT)
 
   p.setPhysicsEngineParameter(
         numSolverIterations=num_bullet_solver_iterations)
-  p.setTimeStep(laikago_sim.time_step)
+  p.setTimeStep(robot_sim.time_step)
   p.setGravity(0, 0, -10)
   p.setPhysicsEngineParameter(enableConeFriction=0)
     
@@ -161,14 +179,23 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
   
   p.changeDynamics(ground_id, -1, lateralFriction=1.0)
   
-  robot_uid = p.loadURDF(
-          "laikago/laikago_toes_zup.urdf", [0, 0, 0.48])
-  
-  robot = laikago_sim.SimpleRobot(p, robot_uid)
+  robot_uid = p.loadURDF(robot_sim.URDF_NAME, robot_sim.START_POS)
+  rgbaColor = [0,0,0,1]
+  p.changeVisualShape(robot_uid, -1,rgbaColor=[0.8,0.8,0.8,1])
+  for l in range(p.getNumJoints(robot_uid)):
+    p.changeVisualShape(robot_uid, l,rgbaColor=rgbaColor)
+
+  robot = robot_sim.SimpleRobot(p, robot_uid)
   
   controller = _setup_controller(robot)
   controller.reset()
-
+  
+  p.configureDebugVisualizer(p.COV_ENABLE_RENDERING,1)
+  #while p.isConnected():
+  #  pos,orn = p.getBasePositionAndOrientation(robot_uid)
+  #  print("pos=",pos)
+  #  p.stepSimulation()
+  #  time.sleep(1./240)  
   current_time = robot.GetTimeSinceReset()
   while current_time < max_time:
     # Updates the controller behavior parameters.
@@ -179,9 +206,14 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
     controller.update()
     hybrid_action = controller.get_action()
     
-    time.sleep(0.01)
-    robot.Step(hybrid_action)
+  
     
+    robot.Step(hybrid_action)
+    if not record_video:
+      time.sleep(0.007)
+    
+    p.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING,1)
+      
     current_time = robot.GetTimeSinceReset()
 
 
