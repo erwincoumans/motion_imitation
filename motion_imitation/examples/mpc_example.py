@@ -92,6 +92,7 @@ def _setup_controller(robot):
       desired_speed=desired_speed,
       desired_twisting_speed=desired_twisting_speed,
       desired_height=_BODY_HEIGHT,
+      foot_clearance=0.01
   )
   st_controller = torque_stance_leg_controller.TorqueStanceLegController(
       robot,
