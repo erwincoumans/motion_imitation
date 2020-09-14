@@ -1,0 +1,30 @@
+# pace
+JOINT_POS_FILENAME = "data/dog_walk00_joint_pos.txt"
+FRAME_START = 162
+FRAME_END = 20
+
+# trot
+JOINT_POS_FILENAME = "data/dog_walk03_joint_pos.txt"
+FRAME_START = 448
+FRAME_END = 481
+
+# trot2
+JOINT_POS_FILENAME = "xbpeng/data/dog_run04_joint_pos.txt"
+FRAME_START = 630
+FRAME_END = 663
+
+# canter
+JOINT_POS_FILENAME = "data/dog_run02_joint_pos.txt"
+FRAME_START = 59
+FRAME_END = 88
+
+# right turn0
+JOINT_POS_FILENAME = "data/dog_walk09_joint_pos.txt"
+FRAME_START = 1085
+FRAME_END = 1124
+
+# left turn0
+JOINT_POS_FILENAME = "data/dog_walk09_joint_pos.txt"
+FRAME_START = 2404
+FRAME_END = 2450
+
