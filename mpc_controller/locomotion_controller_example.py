@@ -180,10 +180,6 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
   p.changeDynamics(ground_id, -1, lateralFriction=1.0)
   
   robot_uid = p.loadURDF(robot_sim.URDF_NAME, robot_sim.START_POS)
-  rgbaColor = [0,0,0,1]
-  p.changeVisualShape(robot_uid, -1,rgbaColor=[0.8,0.8,0.8,1])
-  for l in range(p.getNumJoints(robot_uid)):
-    p.changeVisualShape(robot_uid, l,rgbaColor=rgbaColor)
 
   robot = robot_sim.SimpleRobot(p, robot_uid)
   
