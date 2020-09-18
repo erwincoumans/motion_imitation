@@ -298,13 +298,16 @@ class LocomotionGymEnv(gym.Env):
     # robot class and put the logics here.
     self._robot.Step(action)
 
+    ### Imitation model should be stepped before reward is computed to keep models in sync
+    ### Also if not not ref model velocity is always 0
+    if self._task and hasattr(self._task, 'update'):
+      self._task.update(self)
+      
     reward = self._reward()
 
     for s in self.all_sensors():
       s.on_step(self)
 
-    if self._task and hasattr(self._task, 'update'):
-      self._task.update(self)
 
     done = self._termination()
     self._env_step_counter += 1
