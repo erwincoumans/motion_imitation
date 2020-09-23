@@ -11,6 +11,8 @@ Project page: https://xbpeng.github.io/projects/Robotic_Imitation/index.html
 
 ## Getting Started
 
+- Install MPC extension (Optional) `python3 setup.py install --user`
+
 Install dependencies:
 
 - Install MPI: `sudo apt install libopenmpi-dev`
