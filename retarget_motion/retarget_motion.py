@@ -36,45 +36,22 @@ REF_NECK_JOINT_ID = 3
 REF_HIP_JOINT_IDS = [6, 16, 11, 20]
 REF_TOE_JOINT_IDS = [10, 19, 15, 23]
 
-# pace
-#JOINT_POS_FILENAME = "data/dog_walk00_joint_pos.txt"
-#FRAME_START = 162
-#FRAME_END = 201
+mocap_motions = [
+  ["pace", "data/dog_walk00_joint_pos.txt",162,201],
+  ["trot", "data/dog_walk03_joint_pos.txt",448,481 ],
+  ["trot2", "data/dog_run04_joint_pos.txt",630,663 ],
+  ["canter", "data/dog_run00_joint_pos.txt", 430, 459],
+  ["left turn0", "data/dog_walk09_joint_pos.txt",1085,1124 ],
+  ["right turn0", "data/dog_walk09_joint_pos.txt", 2404,2450],
+]
 
-# trot
-#JOINT_POS_FILENAME = "data/dog_walk03_joint_pos.txt"
-#FRAME_START = 448
-#FRAME_END = 481
-
-# trot2
-#JOINT_POS_FILENAME = "data/dog_run04_joint_pos.txt"
-#FRAME_START = 630
-#FRAME_END = 663
-
-# canter
-#JOINT_POS_FILENAME = "data/dog_run00_joint_pos.txt"
-#FRAME_START = 59
-#FRAME_END = 88
-
-# canter
-JOINT_POS_FILENAME = "data/dog_run00_joint_pos.txt"
-FRAME_START = 430
-FRAME_END = 459
-
-# left turn0
-#JOINT_POS_FILENAME = "data/dog_walk09_joint_pos.txt"
-#FRAME_START = 1085
-#FRAME_END = 1124
-
-# right turn0
-#JOINT_POS_FILENAME = "data/dog_walk09_joint_pos.txt"
-#FRAME_START = 2404
-#FRAME_END = 2450
-
-#JOINT_POS_FILENAME = "data/dog_walk09_joint_pos.txt"
-#FRAME_START = None
-#FRAME_END = None
-
+  
+  # right turn0
+  #JOINT_POS_FILENAME = "data/dog_walk09_joint_pos.txt"
+  #FRAME_START = 2404
+  #FRAME_END = 2450
+  
+  
 def build_markers(num_markers):
   marker_radius = 0.02
 
@@ -274,7 +251,7 @@ def update_camera(robot):
   pybullet.resetDebugVisualizerCamera(dist, yaw, pitch, base_pos)
   return
 
-def load_ref_data():
+def load_ref_data(JOINT_POS_FILENAME, FRAME_START, FRAME_END):
   joint_pos_data = np.loadtxt(JOINT_POS_FILENAME, delimiter=",")
 
   start_frame = 0 if (FRAME_START is None) else FRAME_START
@@ -337,50 +314,66 @@ def output_motion(frames, out_filename):
   return
 
 def main(argv):
-  joint_pos_data = load_ref_data()
+  
 
-  pybullet.connect(pybullet.GUI)
+  
+  p = pybullet
+  p.connect(p.GUI, options="--width=1920 --height=1080 --mp4=\"test.mp4\" --mp4fps=60")
+  p.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING,1)
+
   pybullet.setAdditionalSearchPath(pd.getDataPath())
-  pybullet.resetSimulation()
-  pybullet.setGravity(0, 0, 0)
-
-  ground = pybullet.loadURDF(GROUND_URDF_FILENAME)
-  robot = pybullet.loadURDF(config.URDF_FILENAME, config.INIT_POS, config.INIT_ROT)
-
-  num_markers = joint_pos_data.shape[-1] // POS_SIZE
-  marker_ids = build_markers(num_markers)
-
-  retarget_frames = retarget_motion(robot, joint_pos_data)
-  output_motion(retarget_frames, OUTPUT_FILENAME)
-
-  f = 0
-  num_frames = joint_pos_data.shape[0]
+  
 
   while True:
-    time_start = time.time()
+    
+    for mocap_motion in mocap_motions:
+      pybullet.resetSimulation()
+      pybullet.setGravity(0, 0, 0)
+    
+      ground = pybullet.loadURDF(GROUND_URDF_FILENAME)
+      robot = pybullet.loadURDF(config.URDF_FILENAME, config.INIT_POS, config.INIT_ROT)
 
-    f_idx = f % num_frames
-    print("Frame {:d}".format(f_idx))
-
-    ref_joint_pos = joint_pos_data[f_idx]
-    ref_joint_pos = np.reshape(ref_joint_pos, [-1, POS_SIZE])
-    ref_joint_pos = process_ref_joint_pos_data(ref_joint_pos)
-
-    pose = retarget_frames[f_idx]
-
-    set_pose(robot, pose)
-    set_maker_pos(ref_joint_pos, marker_ids)
-
-    update_camera(robot)
-
-    f += 1
-
-    time_end = time.time()
-    sleep_dur = FRAME_DURATION - (time_end - time_start)
-    sleep_dur = max(0, sleep_dur)
-
-    time.sleep(sleep_dur)
-    #time.sleep(0.5) # jp hack
+      p.removeAllUserDebugItems()
+      print("mocap_name=", mocap_motion[0])
+      joint_pos_data = load_ref_data(mocap_motion[1],mocap_motion[2],mocap_motion[3])
+    
+      num_markers = joint_pos_data.shape[-1] // POS_SIZE
+      marker_ids = build_markers(num_markers)
+    
+      retarget_frames = retarget_motion(robot, joint_pos_data)
+      output_motion(retarget_frames, OUTPUT_FILENAME)
+    
+      f = 0
+      num_frames = joint_pos_data.shape[0]
+    
+      for repeat in range (5*num_frames):
+        time_start = time.time()
+    
+        f_idx = f % num_frames
+        print("Frame {:d}".format(f_idx))
+    
+        ref_joint_pos = joint_pos_data[f_idx]
+        ref_joint_pos = np.reshape(ref_joint_pos, [-1, POS_SIZE])
+        ref_joint_pos = process_ref_joint_pos_data(ref_joint_pos)
+    
+        pose = retarget_frames[f_idx]
+    
+        set_pose(robot, pose)
+        set_maker_pos(ref_joint_pos, marker_ids)
+    
+        update_camera(robot)
+        p.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING,1)
+        f += 1
+    
+        time_end = time.time()
+        sleep_dur = FRAME_DURATION - (time_end - time_start)
+        sleep_dur = max(0, sleep_dur)
+    
+        time.sleep(sleep_dur)
+        #time.sleep(0.5) # jp hack
+      for m in marker_ids:
+        p.removeBody(m)
+      marker_ids = []
 
   pybullet.disconnect()
 

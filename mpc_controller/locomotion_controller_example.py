@@ -156,7 +156,7 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
   #p.configureDebugVisualizer(p.COV_ENABLE_RENDERING,0)
   heightPerturbationRange = 0.06
   
-  plane = False
+  plane = True#False
   if plane:
     planeShape = p.createCollisionShape(shapeType = p.GEOM_PLANE)
     ground_id  = p.createMultiBody(0, planeShape)

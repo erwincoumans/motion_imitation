@@ -16,10 +16,22 @@ from typing import Any, Sequence, Tuple
 
 import numpy as np
 import pybullet as p
-from mpc_controller import gait_generator as gait_generator_lib
-from mpc_controller import leg_controller
-
-import mpc_osqp as convex_mpc
+try:
+  from mpc_controller import gait_generator as gait_generator_lib
+  from mpc_controller import leg_controller
+except:
+  print("You need to install motion_imitation")
+  print("Either run python3 setup.py install --user in this repo")
+  print("or use pip3 install motion_imitation --user")
+  exit()
+  
+try:
+  import mpc_osqp as convex_mpc
+except:
+  print("You need to install motion_imitation")
+  print("Either run python3 setup.py install --user in this repo")
+  print("or use pip3 install motion_imitation --user")
+  exit()
 
 _FORCE_DIMENSION = 3
 # The QP weights in the convex MPC formulation. See the MIT paper for details:

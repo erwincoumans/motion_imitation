@@ -217,7 +217,7 @@ print(find_packages('.'))
 
 setup(
     name='motion_imitation',
-    version='0.0.3',
+    version='0.0.4',
     description=
     'Motion Imitation and MPC with python bindings for MPC using the osqp solver',
     long_description=
