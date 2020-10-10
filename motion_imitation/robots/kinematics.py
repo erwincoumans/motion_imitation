@@ -115,5 +115,4 @@ def compute_jacobian(
                                                   (0, 0, 0), all_joint_angles,
                                                   zero_vec, zero_vec)
   jacobian = np.array(jv)
-  assert jacobian.shape[0] == 3
   return jacobian

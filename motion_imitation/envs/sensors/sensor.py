@@ -24,9 +24,9 @@ import numpy as np
 import typing
 
 
-_ARRAY = typing.Iterable[float]
-_FLOAT_OR_ARRAY = typing.Union[float, _ARRAY]
-_DATATYPE_LIST = typing.Iterable[typing.Any]
+_ARRAY = typing.Iterable[float] # pylint: disable=invalid-name
+_FLOAT_OR_ARRAY = typing.Union[float, _ARRAY] # pylint: disable=invalid-name
+_DATATYPE_LIST = typing.Iterable[typing.Any] # pylint: disable=invalid-name
 
 
 class Sensor(object):
@@ -47,6 +47,9 @@ class Sensor(object):
 
   def get_name(self) -> typing.Text:
     return self._name
+
+  def get_dtype(self):
+    pass
 
   def get_observation_datatype(self):
     """Returns the data type for the numpy structured array.
@@ -143,12 +146,12 @@ class BoxSpaceSensor(Sensor):
     self._shape = shape
     self._dtype = dtype
 
-    if isinstance(lower_bound, float) or isinstance(lower_bound, int):
+    if isinstance(lower_bound, (float, int)):
       self._lower_bound = np.full(shape, lower_bound, dtype=dtype)
     else:
       self._lower_bound = np.array(lower_bound)
 
-    if isinstance(upper_bound, float):
+    if isinstance(upper_bound, (float, int)):
       self._upper_bound = np.full(shape, upper_bound, dtype=dtype)
     else:
       self._upper_bound = np.array(upper_bound)
@@ -160,7 +163,7 @@ class BoxSpaceSensor(Sensor):
     return len(self._shape)
 
   def get_dtype(self):
-    return self._dtype
+    pass
 
   def get_observation_datatype(self) -> _DATATYPE_LIST:
     """Returns box-shape data type."""
@@ -173,6 +176,10 @@ class BoxSpaceSensor(Sensor):
   def get_upper_bound(self) -> _ARRAY:
     """Returns the computed upper bound."""
     return self._upper_bound
+
+  def _get_observation(self) -> _ARRAY:
+    """Returns raw observation"""
+    raise NotImplementedError()
 
   def get_observation(self) -> np.ndarray:
     return np.asarray(self._get_observation(), dtype=self._dtype)

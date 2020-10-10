@@ -23,15 +23,23 @@ from motion_imitation.envs import locomotion_gym_env
 from motion_imitation.envs import locomotion_gym_config
 from motion_imitation.envs.env_wrappers import imitation_wrapper_env
 from motion_imitation.envs.env_wrappers import observation_dictionary_to_array_wrapper
+from motion_imitation.envs.env_wrappers import observation_dictionary_to_array_wrapper as obs_dict_to_array_wrapper
 from motion_imitation.envs.env_wrappers import trajectory_generator_wrapper_env
 from motion_imitation.envs.env_wrappers import simple_openloop
+from motion_imitation.envs.env_wrappers import simple_forward_task
 from motion_imitation.envs.env_wrappers import imitation_task
 from motion_imitation.envs.env_wrappers import default_task
+
 from motion_imitation.envs.sensors import environment_sensors
 from motion_imitation.envs.sensors import sensor_wrappers
 from motion_imitation.envs.sensors import robot_sensors
 from motion_imitation.envs.utilities import controllable_env_randomizer_from_config
 from motion_imitation.robots import laikago
+from motion_imitation.robots import a1
+from motion_imitation.robots import robot_config
+
+
+
 
 
 def build_laikago_env( motor_control_mode, enable_rendering):
@@ -77,6 +85,7 @@ def build_imitation_env(motion_files, num_parallel_envs, mode,
   sim_params = locomotion_gym_config.SimulationParameters()
   sim_params.enable_rendering = enable_rendering
   sim_params.allow_knee_contact = True
+  sim_params.motor_control_mode = robot_config.MotorControlMode.POSITION
 
   gym_config = locomotion_gym_config.LocomotionGymConfig(simulation_parameters=sim_params)
 
@@ -114,4 +123,55 @@ def build_imitation_env(motion_files, num_parallel_envs, mode,
                                                   episode_length_end=curriculum_episode_length_end,
                                                   curriculum_steps=30000000,
                                                   num_parallel_envs=num_parallel_envs)
+  return env
+
+
+
+def build_regular_env(robot_class,
+                      motor_control_mode,
+                      enable_rendering=False,
+                      on_rack=False,
+                      action_limit=(0.75, 0.75, 0.75),
+                      wrap_trajectory_generator=True):
+
+  sim_params = locomotion_gym_config.SimulationParameters()
+  sim_params.enable_rendering = enable_rendering
+  sim_params.motor_control_mode = motor_control_mode
+  sim_params.reset_time = 2
+  sim_params.num_action_repeat = 10
+  sim_params.enable_action_interpolation = False
+  sim_params.enable_action_filter = False
+  sim_params.enable_clip_motor_commands = False
+  sim_params.robot_on_rack = on_rack
+
+  gym_config = locomotion_gym_config.LocomotionGymConfig(
+      simulation_parameters=sim_params)
+
+  sensors = [
+      robot_sensors.BaseDisplacementSensor(),
+      robot_sensors.IMUSensor(),
+      robot_sensors.MotorAngleSensor(num_motors=a1.NUM_MOTORS),
+  ]
+
+  task = simple_forward_task.SimpleForwardTask()
+
+  env = locomotion_gym_env.LocomotionGymEnv(gym_config=gym_config,
+                                            robot_class=robot_class,
+                                            robot_sensors=sensors,
+                                            task=task)
+
+  env = obs_dict_to_array_wrapper.ObservationDictionaryToArrayWrapper(
+      env)
+  if (motor_control_mode
+      == robot_config.MotorControlMode.POSITION) and wrap_trajectory_generator:
+    if robot_class == laikago.Laikago:
+      env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(
+          env,
+          trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(
+              action_limit=action_limit))
+    elif robot_class == a1.A1:
+      env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(
+          env,
+          trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(
+              action_limit=action_limit))
   return env

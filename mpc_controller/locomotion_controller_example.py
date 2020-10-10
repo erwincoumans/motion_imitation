@@ -7,7 +7,7 @@ from __future__ import print_function
 import os
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
+parentdir = os.path.dirname(currentdir)
 os.sys.path.insert(0, parentdir)
 
 from absl import app

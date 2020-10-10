@@ -169,10 +169,10 @@ def swing_extend_to_motor_angles(leg_id, swing, extension, noise_stdev=0):
   motor0 = math.pi / 2
   motor1 = math.pi / 2
   # Rotational move
-  if leg_id == 0 or leg_id == 1:
+  if leg_id in (0, 1):
     motor0 += swing
     motor1 -= swing
-  elif leg_id == 2 or leg_id == 3:
+  elif leg_id in (2, 3):
     motor0 -= swing
     motor1 += swing
   # Extension

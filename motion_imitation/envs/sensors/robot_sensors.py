@@ -31,9 +31,9 @@ import typing
 from robots import minitaur_pose_utils
 from motion_imitation.envs.sensors import sensor
 
-_ARRAY = typing.Iterable[float]
-_FLOAT_OR_ARRAY = typing.Union[float, _ARRAY]
-_DATATYPE_LIST = typing.Iterable[typing.Any]
+_ARRAY = typing.Iterable[float] #pylint: disable=invalid-name
+_FLOAT_OR_ARRAY = typing.Union[float, _ARRAY] #pylint: disable=invalid-name
+_DATATYPE_LIST = typing.Iterable[typing.Any] #pylint: disable=invalid-name
 
 
 class MotorAngleSensor(sensor.BoxSpaceSensor):

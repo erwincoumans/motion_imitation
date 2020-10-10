@@ -94,8 +94,9 @@ def convert_1d_box_sensors_to_gym_space(
 
   lower_bound = np.concatenate([s.get_lower_bound() for s in sensors])
   upper_bound = np.concatenate([s.get_upper_bound() for s in sensors])
-  observation_space = spaces.Box(
-      np.array(lower_bound), np.array(upper_bound), dtype=np.float32)
+  observation_space = spaces.Box(np.array(lower_bound),
+                                 np.array(upper_bound),
+                                 dtype=np.float32)
   return observation_space
 
 
@@ -116,10 +117,9 @@ def convert_sensors_to_gym_space_dictionary(
   gym_space_dict = {}
   for s in sensors:
     if isinstance(s, sensor.BoxSpaceSensor):
-      gym_space_dict[s.get_name()] = spaces.Box(
-          np.array(s.get_lower_bound()),
-          np.array(s.get_upper_bound()),
-          dtype=np.float32)
+      gym_space_dict[s.get_name()] = spaces.Box(np.array(s.get_lower_bound()),
+                                                np.array(s.get_upper_bound()),
+                                                dtype=np.float32)
     else:
       raise UnsupportedConversionError('sensors = ' + str(sensors))
   return spaces.Dict(gym_space_dict)

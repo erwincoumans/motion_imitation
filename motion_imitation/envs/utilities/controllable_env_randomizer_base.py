@@ -30,7 +30,6 @@ class ControllableEnvRandomizerBase(env_randomizer_base.EnvRandomizerBase):
   Randomizes physical parameters of the objects in the simulation and adds
   perturbations to the stepping of the simulation.
   """
-
   def get_randomization_parameters(self):
     """Get the parameters of the randomization."""
     raise NotImplementedError
@@ -38,5 +37,3 @@ class ControllableEnvRandomizerBase(env_randomizer_base.EnvRandomizerBase):
   def set_randomization_from_parameters(self, env, randomization_parameters):
     """Set the parameters of the randomization."""
     raise NotImplementedError
-
-

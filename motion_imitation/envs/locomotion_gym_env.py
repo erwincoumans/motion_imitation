@@ -12,32 +12,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """This file implements the locomotion gym env."""
-
-import os
-import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-os.sys.path.insert(0, parentdir)
-
 import collections
 import time
 import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
-import pybullet
+import pybullet  # pytype: disable=import-error
 import pybullet_utils.bullet_client as bullet_client
 import pybullet_data as pd
 
+from motion_imitation.robots import robot_config
 from motion_imitation.envs.sensors import sensor
 from motion_imitation.envs.sensors import space_utils
-
 
 _ACTION_EPS = 0.01
 _NUM_SIMULATION_ITERATION_STEPS = 300
 _LOG_BUFFER_LENGTH = 5000
+
 
 class LocomotionGymEnv(gym.Env):
   """The gym environment for the locomotion tasks."""
@@ -71,7 +64,7 @@ class LocomotionGymEnv(gym.Env):
       ValueError: If the num_action_repeat is less than 1.
 
     """
-    
+
     self.seed()
     self._gym_config = gym_config
     self._robot_class = robot_class
@@ -107,36 +100,22 @@ class LocomotionGymEnv(gym.Env):
     # The wall-clock time at which the last frame is rendered.
     self._last_frame_time = 0.0
     self._show_reference_id = -1
-    
+
     if self._is_render:
       self._pybullet_client = bullet_client.BulletClient(
           connection_mode=pybullet.GUI)
       pybullet.configureDebugVisualizer(
           pybullet.COV_ENABLE_GUI,
           gym_config.simulation_parameters.enable_rendering_gui)
-      self._show_reference_id = pybullet.addUserDebugParameter("show reference",0,1,
-        self._task._draw_ref_model_alpha)
-      self._delay_id = pybullet.addUserDebugParameter("delay",0,0.3,0)
     else:
-      self._pybullet_client = bullet_client.BulletClient(connection_mode=pybullet.DIRECT)
+      self._pybullet_client = bullet_client.BulletClient(
+          connection_mode=pybullet.DIRECT)
     self._pybullet_client.setAdditionalSearchPath(pd.getDataPath())
     if gym_config.simulation_parameters.egl_rendering:
       self._pybullet_client.loadPlugin('eglRendererPlugin')
 
     # The action list contains the name of all actions.
-    self._action_list = []
-    action_upper_bound = []
-    action_lower_bound = []
-    action_config = robot_class.ACTION_CONFIG
-    for action in action_config:
-      self._action_list.append(action.name)
-      action_upper_bound.append(action.upper_bound)
-      action_lower_bound.append(action.lower_bound)
-
-    self.action_space = spaces.Box(
-        np.array(action_lower_bound),
-        np.array(action_upper_bound),
-        dtype=np.float32)
+    self._build_action_space()
 
     # Set the default render options.
     self._camera_dist = gym_config.simulation_parameters.camera_distance
@@ -153,7 +132,40 @@ class LocomotionGymEnv(gym.Env):
     # Construct the observation space from the list of sensors. Note that we
     # will reconstruct the observation_space after the robot is created.
     self.observation_space = (
-        space_utils.convert_sensors_to_gym_space_dictionary(self.all_sensors()))
+        space_utils.convert_sensors_to_gym_space_dictionary(
+            self.all_sensors()))
+
+  def _build_action_space(self):
+    """Builds action space based on motor control mode."""
+    motor_mode = self._gym_config.simulation_parameters.motor_control_mode
+    if motor_mode == robot_config.MotorControlMode.HYBRID:
+      action_upper_bound = []
+      action_lower_bound = []
+      action_config = self._robot_class.ACTION_CONFIG
+      for action in action_config:
+        action_upper_bound.extend([6.28] * 5)
+        action_lower_bound.extend([-6.28] * 5)
+      self.action_space = spaces.Box(np.array(action_lower_bound),
+                                     np.array(action_upper_bound),
+                                     dtype=np.float32)
+    elif motor_mode == robot_config.MotorControlMode.TORQUE:
+      # TODO (yuxiangy): figure out the torque limits of robots.
+      torque_limits = np.array([100] * len(self._robot_class.ACTION_CONFIG))
+      self.action_space = spaces.Box(-torque_limits,
+                                     torque_limits,
+                                     dtype=np.float32)
+    else:
+      # Position mode
+      action_upper_bound = []
+      action_lower_bound = []
+      action_config = self._robot_class.ACTION_CONFIG
+      for action in action_config:
+        action_upper_bound.append(action.upper_bound)
+        action_lower_bound.append(action.lower_bound)
+
+      self.action_space = spaces.Box(np.array(action_lower_bound),
+                                     np.array(action_upper_bound),
+                                     dtype=np.float32)
 
   def close(self):
     if hasattr(self, '_robot') and self._robot:
@@ -215,20 +227,24 @@ class LocomotionGymEnv(gym.Env):
           pybullet_client=self._pybullet_client,
           sensors=self._robot_sensors,
           on_rack=self._on_rack,
-          action_repeat = self._gym_config.simulation_parameters.num_action_repeat,
-          motor_control_mode = self._gym_config.simulation_parameters.motor_control_mode,
-          reset_time = self._gym_config.simulation_parameters.reset_time,
-          enable_clip_motor_commands = self._gym_config.simulation_parameters.enable_clip_motor_commands,
-          enable_action_filter = self._gym_config.simulation_parameters.enable_action_filter,
-          enable_action_interpolation = self._gym_config.simulation_parameters.enable_action_interpolation,
-          allow_knee_contact = self._gym_config.simulation_parameters.allow_knee_contact
-          )
+          action_repeat=self._gym_config.simulation_parameters.
+          num_action_repeat,
+          motor_control_mode=self._gym_config.simulation_parameters.
+          motor_control_mode,
+          reset_time=self._gym_config.simulation_parameters.reset_time,
+          enable_clip_motor_commands=self._gym_config.simulation_parameters.
+          enable_clip_motor_commands,
+          enable_action_filter=self._gym_config.simulation_parameters.
+          enable_action_filter,
+          enable_action_interpolation=self._gym_config.simulation_parameters.
+          enable_action_interpolation,
+          allow_knee_contact=self._gym_config.simulation_parameters.
+          allow_knee_contact)
 
     # Reset the pose of the robot.
-    self._robot.Reset(
-        reload_urdf=False,
-        default_motor_angles=initial_motor_angles,
-        reset_time=reset_duration)
+    self._robot.Reset(reload_urdf=False,
+                      default_motor_angles=initial_motor_angles,
+                      reset_time=reset_duration)
 
     self._pybullet_client.setPhysicsEngineParameter(enableConeFriction=0)
     self._env_step_counter = 0
@@ -296,30 +312,21 @@ class LocomotionGymEnv(gym.Env):
       self._pybullet_client.resetDebugVisualizerCamera(dist, yaw, pitch,
                                                        base_pos)
       self._pybullet_client.configureDebugVisualizer(
-        self._pybullet_client.COV_ENABLE_SINGLE_STEP_RENDERING,1)
-      alpha = self._pybullet_client.readUserDebugParameter(self._show_reference_id)
-      
-      ref_col = [1, 1, 1, alpha]
-      self._pybullet_client.changeVisualShape(self._task._ref_model, -1, rgbaColor=ref_col)
-      for l in range (self._pybullet_client.getNumJoints(self._task._ref_model)):
-      	self._pybullet_client.changeVisualShape(self._task._ref_model, l, rgbaColor=ref_col)
-    
-      delay = self._pybullet_client.readUserDebugParameter(self._delay_id)
-      if (delay>0):
-        time.sleep(delay)
+          self._pybullet_client.COV_ENABLE_SINGLE_STEP_RENDERING, 1)
+
     for env_randomizer in self._env_randomizers:
       env_randomizer.randomize_step(self)
 
     # robot class and put the logics here.
     self._robot.Step(action)
 
-    reward = self._reward()
-
     for s in self.all_sensors():
       s.on_step(self)
 
     if self._task and hasattr(self._task, 'update'):
       self._task.update(self)
+
+    reward = self._reward()
 
     done = self._termination()
     self._env_step_counter += 1
@@ -425,8 +432,8 @@ class LocomotionGymEnv(gym.Env):
     self._sim_time_step = sim_step
     self._num_action_repeat = num_action_repeat
     self._env_time_step = sim_step * num_action_repeat
-    self._num_bullet_solver_iterations = (
-        _NUM_SIMULATION_ITERATION_STEPS / self._num_action_repeat)
+    self._num_bullet_solver_iterations = (_NUM_SIMULATION_ITERATION_STEPS /
+                                          self._num_action_repeat)
     self._pybullet_client.setPhysicsEngineParameter(
         numSolverIterations=int(np.round(self._num_bullet_solver_iterations)))
     self._pybullet_client.setTimeStep(self._sim_time_step)

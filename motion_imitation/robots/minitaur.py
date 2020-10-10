@@ -63,6 +63,7 @@ MINITAUR_NUM_MOTORS = 8
 TWO_PI = 2 * math.pi
 MINITAUR_DOFS_PER_LEG = 2
 
+
 def MapToMinusPiToPi(angles):
   """Maps a list of angles to [-pi, pi].
 
@@ -84,7 +85,6 @@ def MapToMinusPiToPi(angles):
 
 class Minitaur(object):
   """The minitaur class that simulates a quadruped robot from Ghost Robotics."""
-
   def __init__(self,
                pybullet_client,
                num_motors=MINITAUR_NUM_MOTORS,
@@ -108,7 +108,7 @@ class Minitaur(object):
                sensors=None,
                enable_action_interpolation=False,
                enable_action_filter=False,
-               reset_time = -1):
+               reset_time=-1):
     """Constructs a minitaur and reset it to the initial states.
 
     Args:
@@ -158,7 +158,7 @@ class Minitaur(object):
       enable_action_filter: Boolean specifying if a lowpass filter should be
         used to smooth actions.
     """
-    
+
     self.num_motors = num_motors
     self.num_legs = self.num_motors // dofs_per_leg
     self._pybullet_client = pybullet_client
@@ -178,7 +178,7 @@ class Minitaur(object):
     self._leg_link_ids = []
     self._motor_link_ids = []
     self._foot_link_ids = []
-    
+
     self._motor_overheat_protection = motor_overheat_protection
     self._on_rack = on_rack
     self._reset_at_current_position = reset_at_current_position
@@ -213,7 +213,6 @@ class Minitaur(object):
     else:
       self._motor_torque_limits = motor_torque_limits
 
-    
     self._motor_control_mode = motor_control_mode
     self._motor_model = motor_model_class(
         kp=motor_kp,
@@ -231,24 +230,20 @@ class Minitaur(object):
 
     if self._enable_action_filter:
       self._action_filter = self._BuildActionFilter()
-    
+
     # reset_time=-1.0 means skipping the reset motion.
     # See Reset for more details.
     self.Reset(reset_time=reset_time)
     self.ReceiveObservation()
 
-    return
-
   def GetTimeSinceReset(self):
     return self._step_counter * self.time_step
 
-  def _StepInternal(self, action, motor_control_mode=None):
+  def _StepInternal(self, action, motor_control_mode):
     self.ApplyAction(action, motor_control_mode)
     self._pybullet_client.stepSimulation()
     self.ReceiveObservation()
     self._state_action_counter += 1
-
-    return
 
   def Step(self, action):
     """Steps simulation."""
@@ -257,12 +252,10 @@ class Minitaur(object):
 
     for i in range(self._action_repeat):
       proc_action = self.ProcessAction(action, i)
-      self._StepInternal(proc_action)
+      self._StepInternal(proc_action, self._motor_control_mode)
       self._step_counter += 1
 
     self._last_action = action
-
-    return
 
   def Terminate(self):
     pass
@@ -296,7 +289,8 @@ class Minitaur(object):
     # We need to use id+1 to index self._link_urdf because it has the base
     # (index = -1) at the first element.
     self._base_inertia_urdf = [
-        self._link_urdf[chassis_id + 1] for chassis_id in self._chassis_link_ids
+        self._link_urdf[chassis_id + 1]
+        for chassis_id in self._chassis_link_ids
     ]
     self._leg_inertia_urdf = [
         self._link_urdf[leg_id + 1] for leg_id in self._leg_link_ids
@@ -323,7 +317,7 @@ class Minitaur(object):
     self._leg_link_ids = []
     self._motor_link_ids = []
     self._foot_link_ids = []
-    
+
     self._bracket_link_ids = []
     for i in range(num_joints):
       joint_info = self._pybullet_client.getJointInfo(self.quadruped, i)
@@ -337,10 +331,10 @@ class Minitaur(object):
         self._motor_link_ids.append(joint_id)
       elif _KNEE_NAME_PATTERN.match(joint_name):
         self._foot_link_ids.append(joint_id)
-        
-      elif (_LEG_NAME_PATTERN1.match(joint_name) or
-            _LEG_NAME_PATTERN2.match(joint_name) or
-            _LEG_NAME_PATTERN3.match(joint_name)):
+
+      elif (_LEG_NAME_PATTERN1.match(joint_name)
+            or _LEG_NAME_PATTERN2.match(joint_name)
+            or _LEG_NAME_PATTERN3.match(joint_name)):
         self._leg_link_ids.append(joint_id)
       else:
         raise ValueError("Unknown category of joint %s" % joint_name)
@@ -356,8 +350,10 @@ class Minitaur(object):
     num_joints = self._pybullet_client.getNumJoints(self.quadruped)
     for i in range(num_joints):
       joint_info = self._pybullet_client.getJointInfo(self.quadruped, i)
-      self._pybullet_client.changeDynamics(
-          joint_info[0], -1, linearDamping=0, angularDamping=0)
+      self._pybullet_client.changeDynamics(joint_info[0],
+                                           -1,
+                                           linearDamping=0,
+                                           angularDamping=0)
 
   def _BuildMotorIdList(self):
     self._motor_id_list = [
@@ -418,9 +414,8 @@ class Minitaur(object):
     if reload_urdf:
       self._LoadRobotURDF()
       if self._on_rack:
-        self.rack_constraint = (
-            self._CreateRackConstraint(self._GetDefaultInitPosition(),
-                                       self._GetDefaultInitOrientation()))
+        self.rack_constraint = (self._CreateRackConstraint(
+            self._GetDefaultInitPosition(), self._GetDefaultInitOrientation()))
       self._BuildJointNameToIdDict()
       self._BuildUrdfIds()
       self._RemoveDefaultJointDamping()
@@ -443,13 +438,9 @@ class Minitaur(object):
     self._state_action_counter = 0
     self._is_safe = True
     self._last_action = None
-
     self._SettleDownForReset(default_motor_angles, reset_time)
-
     if self._enable_action_filter:
       self._ResetActionFilter()
-
-    return
 
   def _LoadRobotURDF(self):
     """Loads the URDF file for the robot."""
@@ -477,7 +468,6 @@ class Minitaur(object):
     """
     if reset_time <= 0:
       return
-
     # Important to fill the observation buffer.
     self.ReceiveObservation()
     for _ in range(100):
@@ -519,7 +509,7 @@ class Minitaur(object):
                                    desired_angle)
 
   def GetURDFFile(self):
-    return None
+    return "quadruped/minitaur.urdf"
 
   def ResetPose(self, add_constraint):
     """Reset the pose of the minitaur.
@@ -640,8 +630,8 @@ class Minitaur(object):
         self._control_observation[3 * self.num_motors:3 * self.num_motors + 4])
     delayed_roll_pitch_yaw = self._pybullet_client.getEulerFromQuaternion(
         delayed_orientation)
-    roll_pitch_yaw = self._AddSensorNoise(
-        np.array(delayed_roll_pitch_yaw), self._observation_noise_stdev[3])
+    roll_pitch_yaw = self._AddSensorNoise(np.array(delayed_roll_pitch_yaw),
+                                          self._observation_noise_stdev[3])
     return roll_pitch_yaw
 
   def GetHipPositionsInBaseFrame(self):
@@ -665,10 +655,9 @@ class Minitaur(object):
     toe_id = self._foot_link_ids[leg_id]
 
     motors_per_leg = self.num_motors // self.num_legs
-    joint_position_idxs = [
-        i for i in range(leg_id * motors_per_leg, leg_id * motors_per_leg +
-                         motors_per_leg)
-    ]
+    joint_position_idxs = list(
+        range(leg_id * motors_per_leg,
+              leg_id * motors_per_leg + motors_per_leg))
 
     joint_angles = kinematics.joint_angles_from_link_position(
         robot=self,
@@ -707,7 +696,6 @@ class Minitaur(object):
                           (leg_id + 1) * motors_per_leg):
       motor_torques[joint_id] = all_motor_torques[
           com_dof + joint_id] * self._motor_direction[joint_id]
-
     return motor_torques
 
   def GetFootContacts(self):
@@ -722,17 +710,15 @@ class Minitaur(object):
       link_id_1 = self._foot_link_ids[leg_idx * 2]
       link_id_2 = self._foot_link_ids[leg_idx * 2 + 1]
       contact_1 = bool(
-          self._pybullet_client.getContactPoints(
-              bodyA=0,
-              bodyB=self.quadruped,
-              linkIndexA=-1,
-              linkIndexB=link_id_1))
+          self._pybullet_client.getContactPoints(bodyA=0,
+                                                 bodyB=self.quadruped,
+                                                 linkIndexA=-1,
+                                                 linkIndexB=link_id_1))
       contact_2 = bool(
-          self._pybullet_client.getContactPoints(
-              bodyA=0,
-              bodyB=self.quadruped,
-              linkIndexA=-1,
-              linkIndexB=link_id_2))
+          self._pybullet_client.getContactPoints(bodyA=0,
+                                                 bodyB=self.quadruped,
+                                                 linkIndexA=-1,
+                                                 linkIndexB=link_id_2))
       contacts.append(contact_1 or contact_2)
     return contacts
 
@@ -856,7 +842,8 @@ class Minitaur(object):
     return self.TransformAngularVelocityToLocalFrame(angular_velocity,
                                                      orientation)
 
-  def TransformAngularVelocityToLocalFrame(self, angular_velocity, orientation):
+  def TransformAngularVelocityToLocalFrame(self, angular_velocity,
+                                           orientation):
     """Transform the angular velocity from world frame to robot's frame.
 
     Args:
@@ -869,8 +856,8 @@ class Minitaur(object):
     # Treat angular velocity as a position vector, then transform based on the
     # orientation given by dividing (or multiplying with inverse).
     # Get inverse quaternion assuming the vector is at 0,0,0 origin.
-    _, orientation_inversed = self._pybullet_client.invertTransform([0, 0, 0],
-                                                                    orientation)
+    _, orientation_inversed = self._pybullet_client.invertTransform(
+        [0, 0, 0], orientation)
     # Transform the angular_velocity at neutral orientation using a neutral
     # translation and reverse of the given orientation.
     relative_velocity, _ = self._pybullet_client.multiplyTransforms(
@@ -910,7 +897,7 @@ class Minitaur(object):
             OVERHEAT_SHUTDOWN_TIME / self.time_step):
           self._motor_enabled_list[i] = False
 
-  def ApplyAction(self, motor_commands, motor_control_mode=None):
+  def ApplyAction(self, motor_commands, motor_control_mode):
     """Apply the motor commands using the motor model.
 
     Args:
@@ -920,7 +907,7 @@ class Minitaur(object):
     """
     self.last_action_time = self._state_action_counter * self.time_step
     control_mode = motor_control_mode
-    
+
     if control_mode is None:
       control_mode = self._motor_control_mode
 
@@ -944,9 +931,9 @@ class Minitaur(object):
     motor_ids = []
     motor_torques = []
 
-    for motor_id, motor_torque, motor_enabled in zip(self._motor_id_list,
-                                                     self._applied_motor_torque,
-                                                     self._motor_enabled_list):
+    for motor_id, motor_torque, motor_enabled in zip(
+        self._motor_id_list, self._applied_motor_torque,
+        self._motor_enabled_list):
       if motor_enabled:
         motor_ids.append(motor_id)
         motor_torques.append(motor_torque)
@@ -977,8 +964,8 @@ class Minitaur(object):
       extension_component = (-1)**i * quater_pi * actions[action_idx]
       if i >= half_num_motors:
         extension_component = -extension_component
-      motor_angle[i] = (
-          math.pi + forward_backward_component + extension_component)
+      motor_angle[i] = (math.pi + forward_backward_component +
+                        extension_component)
     return motor_angle
 
   def GetBaseMassesFromURDF(self):
@@ -1013,8 +1000,9 @@ class Minitaur(object):
           "The length of base_mass {} and self._chassis_link_ids {} are not "
           "the same.".format(len(base_mass), len(self._chassis_link_ids)))
     for chassis_id, chassis_mass in zip(self._chassis_link_ids, base_mass):
-      self._pybullet_client.changeDynamics(
-          self.quadruped, chassis_id, mass=chassis_mass)
+      self._pybullet_client.changeDynamics(self.quadruped,
+                                           chassis_id,
+                                           mass=chassis_mass)
 
   def SetLegMasses(self, leg_masses):
     """Set the mass of the legs.
@@ -1034,12 +1022,14 @@ class Minitaur(object):
       raise ValueError("The number of values passed to SetLegMasses are "
                        "different than number of leg links and motors.")
     for leg_id, leg_mass in zip(self._leg_link_ids, leg_masses):
-      self._pybullet_client.changeDynamics(
-          self.quadruped, leg_id, mass=leg_mass)
+      self._pybullet_client.changeDynamics(self.quadruped,
+                                           leg_id,
+                                           mass=leg_mass)
     motor_masses = leg_masses[len(self._leg_link_ids):]
     for link_id, motor_mass in zip(self._motor_link_ids, motor_masses):
-      self._pybullet_client.changeDynamics(
-          self.quadruped, link_id, mass=motor_mass)
+      self._pybullet_client.changeDynamics(self.quadruped,
+                                           link_id,
+                                           mass=motor_mass)
 
   def SetBaseInertias(self, base_inertias):
     """Set the inertias of minitaur's base.
@@ -1057,8 +1047,8 @@ class Minitaur(object):
     if len(base_inertias) != len(self._chassis_link_ids):
       raise ValueError(
           "The length of base_inertias {} and self._chassis_link_ids {} are "
-          "not the same.".format(
-              len(base_inertias), len(self._chassis_link_ids)))
+          "not the same.".format(len(base_inertias),
+                                 len(self._chassis_link_ids)))
     for chassis_id, chassis_inertia in zip(self._chassis_link_ids,
                                            base_inertias):
       for inertia_value in chassis_inertia:
@@ -1082,23 +1072,26 @@ class Minitaur(object):
       the number of links + motors or leg_inertias contains negative values.
     """
 
-    if len(leg_inertias) != len(self._leg_link_ids) + len(self._motor_link_ids):
+    if len(leg_inertias) != len(self._leg_link_ids) + len(
+        self._motor_link_ids):
       raise ValueError("The number of values passed to SetLegMasses are "
                        "different than number of leg links and motors.")
     for leg_id, leg_inertia in zip(self._leg_link_ids, leg_inertias):
       for inertia_value in leg_inertias:
         if (np.asarray(inertia_value) < 0).any():
           raise ValueError("Values in inertia matrix should be non-negative.")
-      self._pybullet_client.changeDynamics(
-          self.quadruped, leg_id, localInertiaDiagonal=leg_inertia)
+      self._pybullet_client.changeDynamics(self.quadruped,
+                                           leg_id,
+                                           localInertiaDiagonal=leg_inertia)
 
     motor_inertias = leg_inertias[len(self._leg_link_ids):]
     for link_id, motor_inertia in zip(self._motor_link_ids, motor_inertias):
       for inertia_value in motor_inertias:
         if (np.asarray(inertia_value) < 0).any():
           raise ValueError("Values in inertia matrix should be non-negative.")
-      self._pybullet_client.changeDynamics(
-          self.quadruped, link_id, localInertiaDiagonal=motor_inertia)
+      self._pybullet_client.changeDynamics(self.quadruped,
+                                           link_id,
+                                           localInertiaDiagonal=motor_inertia)
 
   def SetFootFriction(self, foot_friction):
     """Set the lateral friction of the feet.
@@ -1108,9 +1101,10 @@ class Minitaur(object):
         shared by all four feet.
     """
     for link_id in self._foot_link_ids:
-      self._pybullet_client.changeDynamics(
-          self.quadruped, link_id, lateralFriction=foot_friction)
-  
+      self._pybullet_client.changeDynamics(self.quadruped,
+                                           link_id,
+                                           lateralFriction=foot_friction)
+
   def SetFootRestitution(self, foot_restitution):
     """Set the coefficient of restitution at the feet.
 
@@ -1119,8 +1113,9 @@ class Minitaur(object):
         This value is shared by all four feet.
     """
     for link_id in self._foot_link_ids:
-      self._pybullet_client.changeDynamics(
-          self.quadruped, link_id, restitution=foot_restitution)
+      self._pybullet_client.changeDynamics(self.quadruped,
+                                           link_id,
+                                           restitution=foot_restitution)
 
   def SetJointFriction(self, joint_frictions):
     for knee_joint_id, friction in zip(self._foot_link_ids, joint_frictions):
@@ -1188,8 +1183,9 @@ class Minitaur(object):
       remaining_latency = latency - n_steps_ago * self.time_step
       blend_alpha = remaining_latency / self.time_step
       observation = (
-          (1.0 - blend_alpha) * np.array(self._observation_history[n_steps_ago])
-          + blend_alpha * np.array(self._observation_history[n_steps_ago + 1]))
+          (1.0 - blend_alpha) *
+          np.array(self._observation_history[n_steps_ago]) +
+          blend_alpha * np.array(self._observation_history[n_steps_ago + 1]))
     return observation
 
   def _GetPDObservation(self):
@@ -1206,8 +1202,8 @@ class Minitaur(object):
   def _AddSensorNoise(self, sensor_values, noise_stdev):
     if noise_stdev <= 0:
       return sensor_values
-    observation = sensor_values + np.random.normal(
-        scale=noise_stdev, size=sensor_values.shape)
+    observation = sensor_values + np.random.normal(scale=noise_stdev,
+                                                   size=sensor_values.shape)
     return observation
 
   def SetControlLatency(self, latency):
@@ -1392,14 +1388,9 @@ class Minitaur(object):
       If interpolation is enabled, returns interpolated action depending on
       the current action repeat substep.
     """
-    if self._enable_action_interpolation:
-      if self._last_action is not None:
-        prev_action = self._last_action
-      else:
-        prev_action = self.GetMotorAngles()
-
+    if self._enable_action_interpolation and self._last_action is not None:
       lerp = float(substep_count + 1) / self._action_repeat
-      proc_action = prev_action + lerp * (action - prev_action)
+      proc_action = self._last_action + lerp * (action - self._last_action)
     else:
       proc_action = action
 
@@ -1408,13 +1399,12 @@ class Minitaur(object):
   def _BuildActionFilter(self):
     sampling_rate = 1 / (self.time_step * self._action_repeat)
     num_joints = self.GetActionDimension()
-    a_filter = action_filter.ActionFilterButter(
-        sampling_rate=sampling_rate, num_joints=num_joints)
+    a_filter = action_filter.ActionFilterButter(sampling_rate=sampling_rate,
+                                                num_joints=num_joints)
     return a_filter
 
   def _ResetActionFilter(self):
     self._action_filter.reset()
-    return
 
   def _FilterAction(self, action):
     # initialize the filter history, since resetting the filter will fill
@@ -1439,4 +1429,3 @@ class Minitaur(object):
   def GetConstants(cls):
     del cls
     return minitaur_constants
-
