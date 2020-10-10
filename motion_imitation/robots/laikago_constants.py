@@ -22,7 +22,7 @@ from __future__ import print_function
 
 import collections
 import math
-import pybullet as pyb
+import pybullet as pyb # pytype: disable=import-error
 
 NUM_MOTORS = 12
 NUM_LEGS = 4

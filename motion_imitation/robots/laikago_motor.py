@@ -105,7 +105,7 @@ class LaikagoMotorModel(object):
                         motor_angle,
                         motor_velocity,
                         true_motor_velocity,
-                        motor_control_mode=None):
+                        motor_control_mode):
     """Convert the commands (position control or torque control) to torque.
 
     Args:
@@ -159,6 +159,9 @@ class LaikagoMotorModel(object):
       desired_motor_velocities = motor_commands[
           VELOCITY_INDEX::MOTOR_COMMAND_DIMENSION]
       additional_torques = motor_commands[TORQUE_INDEX::MOTOR_COMMAND_DIMENSION]
+    else:
+      print("Undefined motor_control_mode=",motor_control_mode)
+      exit()
     motor_torques = -1 * (kp * (motor_angle - desired_motor_angles)) - kd * (
         motor_velocity - desired_motor_velocities) + additional_torques
     motor_torques = self._strength_ratios * motor_torques

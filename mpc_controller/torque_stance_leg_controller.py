@@ -15,23 +15,24 @@ os.sys.path.insert(0, parentdir)
 from typing import Any, Sequence, Tuple
 
 import numpy as np
-import pybullet as p
+import pybullet as p  # pytype: disable=import-error
+
 try:
   from mpc_controller import gait_generator as gait_generator_lib
   from mpc_controller import leg_controller
-except:
+except:  #pylint: disable=W0702
   print("You need to install motion_imitation")
   print("Either run python3 setup.py install --user in this repo")
   print("or use pip3 install motion_imitation --user")
-  exit()
-  
+  sys.exit()
+
 try:
-  import mpc_osqp as convex_mpc
-except:
+  import mpc_osqp as convex_mpc  # pytype: disable=import-error
+except:  #pylint: disable=W0702
   print("You need to install motion_imitation")
   print("Either run python3 setup.py install --user in this repo")
   print("or use pip3 install motion_imitation --user")
-  exit()
+  sys.exit()
 
 _FORCE_DIMENSION = 3
 # The QP weights in the convex MPC formulation. See the MIT paper for details:
@@ -39,10 +40,9 @@ _FORCE_DIMENSION = 3
 # Intuitively, this is the weights of each state dimension when tracking a
 # desired CoM trajectory. The full CoM state is represented by
 # (roll_pitch_yaw, position, angular_velocity, velocity, gravity_place_holder).
-_MPC_WEIGHTS = (5, 5, 0.2, 0, 0, 10, 0.5, 0.5, 0.2, 0.2, 0.2, 0.1, 0)
+_MPC_WEIGHTS =   (5, 5, 0.2, 0, 0, 10, 0.5, 0.5, 0.2, 0.2, 0.2, 0.1, 0)
 _PLANNING_HORIZON_STEPS = 10
 _PLANNING_TIMESTEP = 0.025
-
 
 
 class TorqueStanceLegController(leg_controller.LegController):
@@ -51,18 +51,18 @@ class TorqueStanceLegController(leg_controller.LegController):
   Takes in high level parameters like walking speed and turning speed, and
   generates necessary the torques for stance legs.
   """
-
   def __init__(
       self,
       robot: Any,
       gait_generator: Any,
       state_estimator: Any,
-      desired_speed: Tuple[float] = (0, 0),
+      desired_speed: Tuple[float, float] = (0, 0),
       desired_twisting_speed: float = 0,
       desired_body_height: float = 0.45,
       body_mass: float = 220 / 9.8,
-      body_inertia: Tuple[float] = (0.07335, 0, 0, 0, 0.25068, 0, 0, 0,
-                                    0.25447),
+      body_inertia: Tuple[float, float, float, float, float, float, float,
+                          float, float] = (0.07335, 0, 0, 0, 0.25068, 0, 0, 0,
+                                           0.25447),
       num_legs: int = 4,
       friction_coeffs: Sequence[float] = (0.45, 0.45, 0.45, 0.45),
   ):
@@ -104,7 +104,6 @@ class TorqueStanceLegController(leg_controller.LegController):
         _PLANNING_TIMESTEP,
         weights_list,
     )
-    
 
   def reset(self, current_time):
     del current_time
@@ -122,47 +121,52 @@ class TorqueStanceLegController(leg_controller.LegController):
     desired_com_angular_velocity = np.array(
         (0., 0., self.desired_twisting_speed), dtype=np.float64)
     foot_contact_state = np.array(
-        [(leg_state == gait_generator_lib.LegState.STANCE)
+        [(leg_state in (gait_generator_lib.LegState.STANCE,
+                        gait_generator_lib.LegState.EARLY_CONTACT))
          for leg_state in self._gait_generator.desired_leg_state],
         dtype=np.int32)
 
     # We use the body yaw aligned world frame for MPC computation.
-    com_roll_pitch_yaw = np.array(
-        self._robot.GetBaseRollPitchYaw(), dtype=np.float64)
+    com_roll_pitch_yaw = np.array(self._robot.GetBaseRollPitchYaw(),
+                                  dtype=np.float64)
     com_roll_pitch_yaw[2] = 0
 
     #predicted_contact_forces=[0]*self._num_legs*_FORCE_DIMENSION
     p.submitProfileTiming("predicted_contact_forces")
     predicted_contact_forces = self._cpp_mpc.compute_contact_forces(
-        [0],#com_position
-        np.asarray(
-            self._state_estimator.com_velocity_body_frame, dtype=np.float64),#com_velocity
-        np.array(com_roll_pitch_yaw, dtype=np.float64),#com_roll_pitch_yaw
+        [0],  #com_position
+        np.asarray(self._state_estimator.com_velocity_body_frame,
+                   dtype=np.float64),  #com_velocity
+        np.array(com_roll_pitch_yaw, dtype=np.float64),  #com_roll_pitch_yaw
         # Angular velocity in the yaw aligned world frame is actually different
         # from rpy rate. We use it here as a simple approximation.
-        np.asarray(
-            self._robot.GetBaseRollPitchYawRate(), dtype=np.float64),#com_angular_velocity
-        foot_contact_state,#foot_contact_states
-        self._robot.GetFootPositionsInBaseFrame().flatten(),#foot_positions_base_frame
-        self._friction_coeffs,#foot_friction_coeffs
-        desired_com_position,#desired_com_position
-        desired_com_velocity,#desired_com_velocity
-        desired_com_roll_pitch_yaw,#desired_com_roll_pitch_yaw
-        desired_com_angular_velocity#desired_com_angular_velocity
-        )
+        np.asarray(self._robot.GetBaseRollPitchYawRate(),
+                   dtype=np.float64),  #com_angular_velocity
+        foot_contact_state,  #foot_contact_states
+        np.array(self._robot.GetFootPositionsInBaseFrame().flatten(),
+                 dtype=np.float64),  #foot_positions_base_frame
+        self._friction_coeffs,  #foot_friction_coeffs
+        desired_com_position,  #desired_com_position
+        desired_com_velocity,  #desired_com_velocity
+        desired_com_roll_pitch_yaw,  #desired_com_roll_pitch_yaw
+        desired_com_angular_velocity  #desired_com_angular_velocity
+    )
     p.submitProfileTiming()
+
     contact_forces = {}
     for i in range(self._num_legs):
       contact_forces[i] = np.array(
           predicted_contact_forces[i * _FORCE_DIMENSION:(i + 1) *
                                    _FORCE_DIMENSION])
-
     action = {}
     for leg_id, force in contact_forces.items():
-      if self._gait_generator.leg_state[
-          leg_id] == gait_generator_lib.LegState.LOSE_CONTACT:
-        force = (0, 0, 0)
+      # While "Lose Contact" is useful in simulation, in real environment it's
+      # susceptible to sensor noise. Disabling for now.
+      # if self._gait_generator.leg_state[
+      #     leg_id] == gait_generator_lib.LegState.LOSE_CONTACT:
+      #   force = (0, 0, 0)
       motor_torques = self._robot.MapContactForceToJointTorques(leg_id, force)
       for joint_id, torque in motor_torques.items():
         action[joint_id] = (0, 0, 0, 0, torque)
+
     return action

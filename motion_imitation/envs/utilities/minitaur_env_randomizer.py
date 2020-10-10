@@ -36,13 +36,12 @@ MINITAUR_BASE_MASS_ERROR_RANGE = (-0.2, 0.2)  # 0.2 means 20%
 MINITAUR_LEG_MASS_ERROR_RANGE = (-0.2, 0.2)  # 0.2 means 20%
 # Absolute range.
 BATTERY_VOLTAGE_RANGE = (14.8, 16.8)  # Unit: Volt
-MOTOR_VISCOUS_DAMPING_RANGE = (0, 0.01)  # Unit: N*m*s/rad (torque/angular vel)
+MOTOR_VISCOUS_DAMPING_RANGE = (0, 0.01)  # Unit:N*m*s/rad (torque/angular vel)
 MINITAUR_LEG_FRICTION = (0.8, 1.5)  # Unit: dimensionless
 
 
 class MinitaurEnvRandomizer(env_randomizer_base.EnvRandomizerBase):
   """A randomizer that change the minitaur_gym_env during every reset."""
-
   def __init__(self,
                minitaur_base_mass_err_range=MINITAUR_BASE_MASS_ERROR_RANGE,
                minitaur_leg_mass_err_range=MINITAUR_LEG_MASS_ERROR_RANGE,
@@ -60,8 +59,8 @@ class MinitaurEnvRandomizer(env_randomizer_base.EnvRandomizerBase):
     """Randomize various physical properties of minitaur.
 
     It randomizes the mass/inertia of the base, mass/inertia of the legs,
-    friction coefficient of the feet, the battery voltage and the motor damping
-    at each reset() of the environment.
+    friction coefficient of the feet, the battery voltage and the motor
+    damping at each reset() of the environment.
 
     Args:
       minitaur: the Minitaur instance in minitaur_gym_env environment.

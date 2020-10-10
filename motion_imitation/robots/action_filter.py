@@ -124,7 +124,6 @@ class ActionFilter(object):
     for i in range(self.hist_len):
       self.xhist[i] = x
       self.yhist[i] = x
-    return
 
 class ActionFilterButter(ActionFilter):
   """Butterworth filter."""

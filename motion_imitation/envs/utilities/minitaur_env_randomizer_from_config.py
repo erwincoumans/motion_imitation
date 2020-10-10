@@ -39,7 +39,6 @@ SIMULATION_TIME_STEP = 0.001
 
 class MinitaurEnvRandomizerFromConfig(env_randomizer_base.EnvRandomizerBase):
   """A randomizer that change the minitaur_gym_env during every reset."""
-
   def __init__(self, config=None):
     if config is None:
       config = "all_params"
