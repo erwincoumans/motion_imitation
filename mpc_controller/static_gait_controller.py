@@ -1,15 +1,9 @@
 # Lint as: python3
 """A static gait controller for a quadruped robot. Experimental code."""
 
-
-import os
-import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-os.sys.path.insert(0, parentdir)
-
+import gin
 import numpy as np
-from mpc_controller import foot_stepper
+from . import foot_stepper
 
 toe_pos_local_ref = np.array([[0.1478, -0.11459, -0.45576],
                               [0.1478, 0.11688, -0.45576],
@@ -17,7 +11,7 @@ toe_pos_local_ref = np.array([[0.1478, -0.11459, -0.45576],
                               [-0.2895, 0.11688, -0.45576]])
 
 
-
+@gin.configurable
 class StaticGaitController(object):
   """A static gait controller for a quadruped robot."""
 

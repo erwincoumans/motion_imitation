@@ -3,23 +3,17 @@
 
 from __future__ import absolute_import
 from __future__ import division
-#from __future__ import google_type_annotations
 from __future__ import print_function
 
-import os
-import inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-os.sys.path.insert(0, parentdir)
-
+import sys
 from typing import Any, Sequence, Tuple
 
 import numpy as np
 import pybullet as p  # pytype: disable=import-error
 
 try:
-  from mpc_controller import gait_generator as gait_generator_lib
-  from mpc_controller import leg_controller
+  from locomotion.agents.mpc_controller import gait_generator as gait_generator_lib
+  from locomotion.agents.mpc_controller import leg_controller
 except:  #pylint: disable=W0702
   print("You need to install motion_imitation")
   print("Either run python3 setup.py install --user in this repo")
@@ -40,7 +34,10 @@ _FORCE_DIMENSION = 3
 # Intuitively, this is the weights of each state dimension when tracking a
 # desired CoM trajectory. The full CoM state is represented by
 # (roll_pitch_yaw, position, angular_velocity, velocity, gravity_place_holder).
-_MPC_WEIGHTS =   (5, 5, 0.2, 0, 0, 10, 0.5, 0.5, 0.2, 0.2, 0.2, 0.1, 0)
+# _MPC_WEIGHTS = (5, 5, 0.2, 0, 0, 10, 0.5, 0.5, 0.2, 0.2, 0.2, 0.1, 0)
+# This worked well for in-place stepping in the real robot.
+# _MPC_WEIGHTS = (5, 5, 0.2, 0, 0, 10, 0., 0., 0.2, 1., 1., 0., 0)
+_MPC_WEIGHTS = (5, 5, 0.2, 0, 0, 10, 0., 0., 1., 1., 1., 0., 0)
 _PLANNING_HORIZON_STEPS = 10
 _PLANNING_TIMESTEP = 0.025
 
@@ -132,6 +129,9 @@ class TorqueStanceLegController(leg_controller.LegController):
     com_roll_pitch_yaw[2] = 0
 
     #predicted_contact_forces=[0]*self._num_legs*_FORCE_DIMENSION
+    # print("Com Vel: {}".format(self._state_estimator.com_velocity_body_frame))
+    # print("Com RPY: {}".format(self._robot.GetBaseRollPitchYawRate()))
+    # print("Com RPY Rate: {}".format(self._robot.GetBaseRollPitchYawRate()))
     p.submitProfileTiming("predicted_contact_forces")
     predicted_contact_forces = self._cpp_mpc.compute_contact_forces(
         [0],  #com_position
@@ -152,6 +152,11 @@ class TorqueStanceLegController(leg_controller.LegController):
         desired_com_angular_velocity  #desired_com_angular_velocity
     )
     p.submitProfileTiming()
+    # sol = np.array(predicted_contact_forces).reshape((-1, 12))
+    # x_dim = np.array([0, 3, 6, 9])
+    # y_dim = x_dim + 1
+    # z_dim = y_dim + 1
+    # print("Y_forces: {}".format(sol[:, y_dim]))
 
     contact_forces = {}
     for i in range(self._num_legs):
@@ -169,4 +174,4 @@ class TorqueStanceLegController(leg_controller.LegController):
       for joint_id, torque in motor_torques.items():
         action[joint_id] = (0, 0, 0, 0, torque)
 
-    return action
+    return action, contact_forces
