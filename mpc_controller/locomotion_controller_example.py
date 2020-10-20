@@ -29,8 +29,8 @@ from mpc_controller import raibert_swing_leg_controller
 from mpc_controller import torque_stance_leg_controller
 
 #uncomment the robot of choice
-#from mpc_controller import laikago_sim as robot_sim
-from mpc_controller import a1_sim as robot_sim
+from mpc_controller import laikago_sim as robot_sim
+#from mpc_controller import a1_sim as robot_sim
 
 FLAGS = flags.FLAGS
 
@@ -189,7 +189,7 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
   #p.configureDebugVisualizer(p.COV_ENABLE_RENDERING,0)
   heightPerturbationRange = 0.06
   
-  plane = True#False
+  plane = False
   if plane:
     p.loadURDF("plane.urdf")
     #planeShape = p.createCollisionShape(shapeType = p.GEOM_PLANE)

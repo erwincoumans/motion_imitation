@@ -174,8 +174,8 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
   com_vels, imu_rates, actions = [], [], []
   #logId = p.startStateLogging(p.STATE_LOGGING_PROFILE_TIMINGS, "whole.json")
   while current_time < max_time:
-    pos,orn = p.getBasePositionAndOrientation(robot.quadruped)
-    print("pos=",pos, " orn=",orn)
+    #pos,orn = p.getBasePositionAndOrientation(robot.quadruped)
+    #print("pos=",pos, " orn=",orn)
     p.submitProfileTiming("loop")
     start_time_robot = current_time
     start_time_wall = time.time()
