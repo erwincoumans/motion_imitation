@@ -65,7 +65,7 @@ _STANCE_DURATION_SECONDS = [
 # Trotting
 _DUTY_FACTOR = [0.6] * 4
 _INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
-_MAX_TIME_SECONDS = 1
+_MAX_TIME_SECONDS = 5
 
 _INIT_LEG_STATE = (
     gait_generator_lib.LegState.SWING,
@@ -172,7 +172,11 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
 
   current_time = robot.GetTimeSinceReset()
   com_vels, imu_rates, actions = [], [], []
+  #logId = p.startStateLogging(p.STATE_LOGGING_PROFILE_TIMINGS, "whole.json")
   while current_time < max_time:
+    pos,orn = p.getBasePositionAndOrientation(robot.quadruped)
+    print("pos=",pos, " orn=",orn)
+    p.submitProfileTiming("loop")
     start_time_robot = current_time
     start_time_wall = time.time()
     # Updates the controller behavior parameters.
@@ -192,6 +196,8 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
 
     if actual_duration < expected_duration:
       time.sleep(expected_duration - actual_duration)
+   
+  #p.stopStateLogging(logId )
 
   if FLAGS.logdir:
     logdir = os.path.join(FLAGS.logdir,

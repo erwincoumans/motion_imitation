@@ -2,13 +2,17 @@ import re
 import numpy as np
 
 URDF_NAME = "a1/a1.urdf"
-START_POS = [0, 0, 0.48]
-MPC_BODY_MASS = 125/9.8
-MPC_BODY_INERTIA = (0.07335, 0, 0, 0, 0.25068, 0, 0, 0, 0.25447)
-MPC_BODY_HEIGHT = 0.31       
-time_step = 0.001
-ACTION_REPEAT = 10
+START_POS = [0, 0, 0.32]
+
+
+MPC_BODY_MASS = 108 / 9.8
+MPC_BODY_INERTIA = np.array(
+      (0.017, 0, 0, 0, 0.057, 0, 0, 0, 0.064)) * 0.1#* 2
+MPC_BODY_HEIGHT = 0.24
 MPC_VELOCITY_MULTIPLIER = 0.5
+  
+ACTION_REPEAT = 5
+
 
 
 _IDENTITY_ORIENTATION=[0,0,0,1]
@@ -18,12 +22,21 @@ LOWER_NAME_PATTERN = re.compile(r"\w+_lower_\w+")
 TOE_NAME_PATTERN = re.compile(r"\w+_toe\d*")
 IMU_NAME_PATTERN = re.compile(r"imu\d*")
 
+
 _DEFAULT_HIP_POSITIONS = (
-    (0.21, -0.1157, 0),
-    (0.21, 0.1157, 0),
-    (-0.21, -0.1157, 0),
-    (-0.21, 0.1157, 0),
+    (0.17, -0.14, 0),
+    (0.17, 0.14, 0),
+    (-0.17, -0.14, 0),
+    (-0.17, 0.14, 0),
 )
+
+ABDUCTION_P_GAIN = 100.0
+ABDUCTION_D_GAIN = 1.
+HIP_P_GAIN = 100.0
+HIP_D_GAIN = 2.0
+KNEE_P_GAIN = 100.0
+KNEE_D_GAIN = 2.0
+
 _BODY_B_FIELD_NUMBER = 2
 _LINK_A_FIELD_NUMBER = 3
 
@@ -214,8 +227,9 @@ class LaikagoMotorModel(object):
   
 
 class SimpleRobot(object):
-  def __init__(self, pybullet_client, robot_uid):
+  def __init__(self, pybullet_client, robot_uid, simulation_time_step):
     self.pybullet_client = pybullet_client
+    self.time_step = simulation_time_step
     self.quadruped = robot_uid
     self.num_legs = NUM_LEGS
     self.num_motors = NUM_MOTORS
@@ -233,7 +247,7 @@ class SimpleRobot(object):
     self._kd = self.GetMotorVelocityGains()
     self._motor_model = LaikagoMotorModel(kp=self._kp, kd=self._kd, motor_control_mode=MOTOR_CONTROL_HYBRID)
     self._SettleDownForReset(reset_time=1.0)
-
+    self._step_counter = 0
 
   def ResetPose(self):
     for name in self._joint_name_to_id:
@@ -277,10 +291,15 @@ class SimpleRobot(object):
     ]
   
   def GetMotorPositionGains(self):
-    return [220.]*self.num_motors
+     return np.array([ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN, ABDUCTION_P_GAIN,
+        HIP_P_GAIN, KNEE_P_GAIN, ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN,
+        ABDUCTION_P_GAIN, HIP_P_GAIN, KNEE_P_GAIN])
     
   def GetMotorVelocityGains(self):
-    return np.array([1., 2., 2., 1., 2., 2., 1., 2., 2., 1., 2., 2.])
+    return np.array([ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN, ABDUCTION_D_GAIN,
+        HIP_D_GAIN, KNEE_D_GAIN, ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN,
+        ABDUCTION_D_GAIN, HIP_D_GAIN, KNEE_D_GAIN])
+    
     
   def compute_jacobian(self, robot, link_id):
     """Computes the Jacobian matrix for the given link.
@@ -424,7 +443,7 @@ class SimpleRobot(object):
     return joint_position_idxs, joint_angles.tolist()
     
   def GetTimeSinceReset(self):
-    return self._step_counter * time_step
+    return self._step_counter * self.time_step
     
   def GetHipPositionsInBaseFrame(self):
     return _DEFAULT_HIP_POSITIONS
@@ -475,7 +494,7 @@ class SimpleRobot(object):
     orientation = self.GetTrueBaseOrientation()
     return self.TransformAngularVelocityToLocalFrame(angular_velocity,
                                                      orientation)
-                                                     
+                              
   def GetFootContacts(self):
     all_contacts = self.pybullet_client.getContactPoints(bodyA=self.quadruped)
 

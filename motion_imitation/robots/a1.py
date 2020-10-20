@@ -61,10 +61,10 @@ PI = math.pi
 
 MAX_MOTOR_ANGLE_CHANGE_PER_STEP = 0.2
 _DEFAULT_HIP_POSITIONS = (
-    (0.21, -0.1157, 0),
-    (0.21, 0.1157, 0),
-    (-0.21, -0.1157, 0),
-    (-0.21, 0.1157, 0),
+    (0.17, -0.14, 0),
+    (0.17, 0.14, 0),
+    (-0.17, -0.14, 0),
+    (-0.17, 0.14, 0),
 )
 
 ABDUCTION_P_GAIN = 100.0
@@ -96,8 +96,8 @@ class A1(minitaur.Minitaur):
   # doesn't seem to matter much. However, these values should be better tuned
   # when the replan frequency is low (e.g. using a less beefy CPU).
   MPC_BODY_MASS = 108 / 9.8
-  MPC_BODY_INERTIA = (0.07335, 0, 0, 0, 0.25068, 0, 0, 0, 0.25447)
-
+  MPC_BODY_INERTIA = np.array(
+      (0.017, 0, 0, 0, 0.057, 0, 0, 0, 0.064)) * 0.1#* 2
   MPC_BODY_HEIGHT = 0.24
   MPC_VELOCITY_MULTIPLIER = 0.5
   ACTION_CONFIG = [

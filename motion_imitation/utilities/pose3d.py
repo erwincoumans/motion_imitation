@@ -12,9 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+"""Utilities for 3D pose conversion."""
 import math
-from absl import logging
 import numpy as np
 
 from pybullet_utils import transformations
@@ -248,38 +247,37 @@ def IsRotationMatrix(m):
   eye = np.matmul(rot, np.transpose(rot))
   return np.isclose(eye, np.identity(3), atol=1e-4).all()
 
-def ZAxisAlignedRobotPoseTool(robot_pose_tool):
-  """Returns the current gripper pose rotated for alignment with the z-axis.
+# def ZAxisAlignedRobotPoseTool(robot_pose_tool):
+#   """Returns the current gripper pose rotated for alignment with the z-axis.
 
-  Args:
-    robot_pose_tool: a pose3d.Pose3d() instance.
+#   Args:
+#     robot_pose_tool: a pose3d.Pose3d() instance.
 
-  Returns:
-    An instance of pose.Transform representing the current gripper pose
-    rotated for alignment with the z-axis.
-  """
-  # Align the current pose to the z-axis.
-  robot_pose_tool.quaternion = transformations.quaternion_multiply(
-      RotationBetween(
-          robot_pose_tool.matrix4x4[0:3, 0:3].dot(np.array([0, 0, 1])),
-          np.array([0.0, 0.0, -1.0])), robot_pose_tool.quaternion)
-  return robot_pose_tool
+#   Returns:
+#     An instance of pose.Transform representing the current gripper pose
+#     rotated for alignment with the z-axis.
+#   """
+#   # Align the current pose to the z-axis.
+#   robot_pose_tool.quaternion = transformations.quaternion_multiply(
+#       RotationBetween(
+#           robot_pose_tool.matrix4x4[0:3, 0:3].dot(np.array([0, 0, 1])),
+#           np.array([0.0, 0.0, -1.0])), robot_pose_tool.quaternion)
+#   return robot_pose_tool
 
+# def RotationBetween(a_translation_b, a_translation_c):
+#   """Computes the rotation from one vector to another.
 
-def RotationBetween(a_translation_b, a_translation_c):
-  """Computes the rotation from one vector to another.
+#   The computed rotation has the property that:
 
-  The computed rotation has the property that:
+#     a_translation_c = a_rotation_b_to_c * a_translation_b
 
-    a_translation_c = a_rotation_b_to_c * a_translation_b
+#   Args:
+#     a_translation_b: vec3, vector to rotate from
+#     a_translation_c: vec3, vector to rotate to
 
-  Args:
-    a_translation_b: vec3, vector to rotate from
-    a_translation_c: vec3, vector to rotate to
-
-  Returns:
-    a_rotation_b_to_c: new Orientation
-  """
-  rotation = rotation3.Rotation3.rotation_between(
-      a_translation_b, a_translation_c, err_msg='RotationBetween')
-  return rotation.quaternion.xyzw
+#   Returns:
+#     a_rotation_b_to_c: new Orientation
+#   """
+#   rotation = rotation3.Rotation3.rotation_between(
+#       a_translation_b, a_translation_c, err_msg='RotationBetween')
+#   return rotation.quaternion.xyzw
