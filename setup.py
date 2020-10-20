@@ -92,7 +92,7 @@ CXX_FLAGS = ''
 libraries = []
 include_dirs = [
   '.',
-  'third_party/pybind11/include', 
+  'third_party/unitree_legged_sdk/pybind11/include', 
   'third_party/eigen3/include',
   'third_party/osqp/include',
   'third_party',
