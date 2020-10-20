@@ -138,7 +138,7 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
 
     # Needed before every call to get_action().
     controller.update()
-    hybrid_action = controller.get_action()
+    hybrid_action, info = controller.get_action()
 
     env.step(hybrid_action)
     current_time = env.robot.GetTimeSinceReset()

@@ -4,6 +4,6 @@ mpi4py==3.0.3
 numpy==1.17.3
 pybullet
 tensorflow==1.15.4
-tensorboard==1.14.0
+tensorboard==1.15.0
 typing==3.7.4.1
 stable-baselines==2.10.0

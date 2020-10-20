@@ -22,12 +22,9 @@ parentdir = os.path.dirname(os.path.dirname(currentdir))
 os.sys.path.insert(0, parentdir)
 
 from absl import logging
-from io import BytesIO
 import math
 import re
 import numpy as np
-import lcm
-import threading
 import time
 
 from motion_imitation.robots import laikago_pose_utils
@@ -67,10 +64,10 @@ PI = math.pi
 
 MAX_MOTOR_ANGLE_CHANGE_PER_STEP = 0.2
 _DEFAULT_HIP_POSITIONS = (
-    (0.21, -0.1157, 0),
-    (0.21, 0.1157, 0),
-    (-0.21, -0.1157, 0),
-    (-0.21, 0.1157, 0),
+    (0.17, -0.14, 0),
+    (0.17, 0.14, 0),
+    (-0.17, -0.14, 0),
+    (-0.17, 0.14, 0),
 )
 
 ABDUCTION_P_GAIN = 100.0
@@ -104,8 +101,8 @@ _LINK_A_FIELD_NUMBER = 3
 
 class A1Robot(a1.A1):
   """Interface for real A1 robot."""
-  MPC_BODY_MASS = 14.2
-  MPC_BODY_INERTIA = (0.07335, 0, 0, 0, 0.25068, 0, 0, 0, 0.25447)
+  MPC_BODY_MASS = 10
+  MPC_BODY_INERTIA = np.array((0.017, 0, 0, 0, 0.057, 0, 0, 0, 0.064)) * 2.
 
   MPC_BODY_HEIGHT = 0.24
   ACTION_CONFIG = [
@@ -167,24 +164,11 @@ class A1Robot(a1.A1):
     self._velocity_estimator = a1_robot_velocity_estimator.VelocityEstimator(
         self)
 
-    # Initiate LCM channel for robot state and actions
-    self.lc = lcm.LCM()
-    self._command_channel_name = COMMAND_CHANNEL_NAME
-    # Send dummy command so that the robot starts responding
-    command = comm.LowCmd()
+    # Initiate UDP for robot state and actions
+    self._robot_interface = RobotInterface()
+    command = LowCmd()
     command.levelFlag = 0xff  # pylint: disable=C0103
-    self.lc.publish(self._command_channel_name, command)
-    self._state_channel_name = STATE_CHANNEL_NAME
-    self._state_channel = self.lc.subscribe(STATE_CHANNEL_NAME,
-                                            self.ReceiveObservationAsync)
-
-    self._is_alive = True
-    self.subscribe_thread = threading.Thread(target=self._LCMSubscribeLoop,
-                                             args=())
-    self.subscribe_thread.start()
-    while self._last_raw_state is None:
-      logging.info("Robot sensor reading not ready yet, sleep for 1 second...")
-      time.sleep(1)
+    self._robot_interface.send_command(command)
 
     kwargs['on_rack'] = True
     super(A1Robot, self).__init__(pybullet_client,
@@ -192,30 +176,13 @@ class A1Robot(a1.A1):
                                   **kwargs)
     self._init_complete = True
 
-  def _LCMSubscribeLoop(self):
-    while self._is_alive:
-      self.lc.handle_timeout(100)
-
   def ReceiveObservation(self):
     """Receives observation from robot.
 
     Synchronous ReceiveObservation is not supported in A1,
     so changging it to noop instead.
     """
-    pass
-
-  def ReceiveObservationAsync(self, channel, data):
-    """Receive the observation from sensors.
-
-    This function is called once per step. The observations are only updated
-    when this function is called.
-    """
-    del channel  # unused
-    stream = BytesIO(data)
-    state = comm.LowState()
-    stream.readinto(state)  # pytype: disable=wrong-arg-types
-
-    self._last_raw_state = self._raw_state
+    state = self._robot_interface.receive_observation()
     self._raw_state = state
     # Convert quaternion from wxyz to xyzw, which is default for Pybullet.
     q = state.imu.quaternion
@@ -226,23 +193,25 @@ class A1Robot(a1.A1):
     self._joint_states = np.array(
         list(zip(self._motor_angles, self._motor_velocities)))
     if self._init_complete:
-      self._SetMotorAnglesInSim(self._motor_angles, self._motor_velocities)
+      self._SetRobotStateInSim(self._motor_angles, self._motor_velocities)
       self._velocity_estimator.update(self._raw_state)
 
-  def _SetMotorAnglesInSim(self, motor_angles, motor_velocities):
+  def _SetRobotStateInSim(self, motor_angles, motor_velocities):
+    self._pybullet_client.resetBasePositionAndOrientation(
+        self.quadruped, self.GetBasePosition(), self.GetBaseOrientation())
     for i, motor_id in enumerate(self._motor_id_list):
       self._pybullet_client.resetJointState(self.quadruped, motor_id,
                                             motor_angles[i],
                                             motor_velocities[i])
 
   def GetTrueMotorAngles(self):
-    return self._motor_angles
+    return self._motor_angles.copy()
 
   def GetMotorAngles(self):
-    return minitaur.MapToMinusPiToPi(self._motor_angles)
+    return minitaur.MapToMinusPiToPi(self._motor_angles).copy()
 
   def GetMotorVelocities(self):
-    return self._motor_velocities
+    return self._motor_velocities.copy()
 
   def GetBasePosition(self):
     return self._pybullet_client.getBasePositionAndOrientation(
@@ -258,10 +227,10 @@ class A1Robot(a1.A1):
     return self.GetTrueBaseRollPitchYawRate()
 
   def GetTrueBaseRollPitchYawRate(self):
-    return np.array(self._raw_state.imu.gyroscope)
+    return np.array(self._raw_state.imu.gyroscope).copy()
 
   def GetBaseVelocity(self):
-    return self._velocity_estimator.estimated_velocity
+    return self._velocity_estimator.estimated_velocity.copy()
 
   def GetFootContacts(self):
     return np.array(self._raw_state.footForce) > 20
@@ -269,10 +238,12 @@ class A1Robot(a1.A1):
   def GetTimeSinceReset(self):
     return time.time() - self._last_reset_time
 
+  def GetBaseOrientation(self):
+    return self._base_orientation.copy()
+
   @property
   def motor_velocities(self):
-    return self._motor_velocities
-
+    return self._motor_velocities.copy()
 
   def ApplyAction(self, motor_commands, motor_control_mode=None):
     """Clips and then apply the motor commands using the motor model.
@@ -285,7 +256,7 @@ class A1Robot(a1.A1):
     if motor_control_mode is None:
       motor_control_mode = self._motor_control_mode
 
-    command = comm.LowCmd()
+    command = LowCmd()
     command.levelFlag = 0xff  #pylint:disable=invalid-name
 
     if motor_control_mode == robot_config.MotorControlMode.POSITION:
@@ -296,12 +267,6 @@ class A1Robot(a1.A1):
         command.motorCmd[motor_id].dq = 0
         command.motorCmd[motor_id].Kd = self.motor_kds[motor_id]
         command.motorCmd[motor_id].tau = 0
-
-      # Gravity compensation
-      command.motorCmd[0].tau = -0.65
-      command.motorCmd[3].tau = 0.65
-      command.motorCmd[6].tau = -0.65
-      command.motorCmd[9].tau = 0.65
     elif motor_control_mode == robot_config.MotorControlMode.TORQUE:
       for motor_id in range(NUM_MOTORS):
         command.motorCmd[motor_id].mode = 0x0A
@@ -322,7 +287,7 @@ class A1Robot(a1.A1):
       raise ValueError('Unknown motor control mode for A1 robot: {}.'.format(
           motor_control_mode))
 
-    self.lc.publish(self._command_channel_name, command)
+    self._robot_interface.send_command(command)
 
   def Reset(self, reload_urdf=True, default_motor_angles=None, reset_time=3.0):
     """Reset the robot to default motor angles."""
@@ -336,11 +301,14 @@ class A1Robot(a1.A1):
       default_motor_angles = a1.INIT_MOTOR_ANGLES
 
     current_motor_angles = self.GetMotorAngles()
+
+    # Stand up in 1.5 seconds, and keep the behavior in this way.
+    standup_time = min(reset_time, 1.5)
     for t in np.arange(0, reset_time, self.time_step * self._action_repeat):
-      blend_ratio = t / reset_time
+      blend_ratio = min(t / standup_time, 1)
       action = blend_ratio * default_motor_angles + (
           1 - blend_ratio) * current_motor_angles
-      self.ApplyAction(action, robot_config.MotorControlMode.POSITION)
+      self.Step(action, robot_config.MotorControlMode.POSITION)
       time.sleep(self.time_step * self._action_repeat)
 
     if self._enable_action_filter:

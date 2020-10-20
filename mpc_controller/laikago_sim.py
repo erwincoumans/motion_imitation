@@ -10,7 +10,7 @@ MPC_BODY_HEIGHT = 0.42
 
 MPC_VELOCITY_MULTIPLIER = 1.0
 
-time_step = 0.001
+
 ACTION_REPEAT = 10
 
 _IDENTITY_ORIENTATION=[0,0,0,1]
@@ -214,8 +214,9 @@ class LaikagoMotorModel(object):
   
 
 class SimpleRobot(object):
-  def __init__(self, pybullet_client, robot_uid):
+  def __init__(self, pybullet_client, robot_uid, simulation_time_step):
     self.pybullet_client = pybullet_client
+    self.time_step = simulation_time_step
     self.quadruped = robot_uid
     self.num_legs = NUM_LEGS
     self.num_motors = NUM_MOTORS
@@ -424,7 +425,7 @@ class SimpleRobot(object):
     return joint_position_idxs, joint_angles.tolist()
     
   def GetTimeSinceReset(self):
-    return self._step_counter * time_step
+    return self._step_counter * self.time_step
     
   def GetHipPositionsInBaseFrame(self):
     return _DEFAULT_HIP_POSITIONS

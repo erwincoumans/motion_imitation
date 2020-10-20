@@ -107,6 +107,9 @@ class LocomotionGymEnv(gym.Env):
       pybullet.configureDebugVisualizer(
           pybullet.COV_ENABLE_GUI,
           gym_config.simulation_parameters.enable_rendering_gui)
+      self._show_reference_id = pybullet.addUserDebugParameter("show reference",0,1,
+        self._task._draw_ref_model_alpha)
+      self._delay_id = pybullet.addUserDebugParameter("delay",0,0.3,0)
     else:
       self._pybullet_client = bullet_client.BulletClient(
           connection_mode=pybullet.DIRECT)
@@ -313,6 +316,16 @@ class LocomotionGymEnv(gym.Env):
                                                        base_pos)
       self._pybullet_client.configureDebugVisualizer(
           self._pybullet_client.COV_ENABLE_SINGLE_STEP_RENDERING, 1)
+      alpha = self._pybullet_client.readUserDebugParameter(self._show_reference_id)
+      
+      ref_col = [1, 1, 1, alpha]
+      self._pybullet_client.changeVisualShape(self._task._ref_model, -1, rgbaColor=ref_col)
+      for l in range (self._pybullet_client.getNumJoints(self._task._ref_model)):
+      	self._pybullet_client.changeVisualShape(self._task._ref_model, l, rgbaColor=ref_col)
+    
+      delay = self._pybullet_client.readUserDebugParameter(self._delay_id)
+      if (delay>0):
+        time.sleep(delay)
 
     for env_randomizer in self._env_randomizers:
       env_randomizer.randomize_step(self)

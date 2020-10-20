@@ -90,7 +90,7 @@ class LocomotionController(object):
   def get_action(self):
     """Returns the control ouputs (e.g. positions/torques) for all motors."""
     swing_action = self._swing_leg_controller.get_action()
-    stance_action = self._stance_leg_controller.get_action()
+    stance_action, qp_sol = self._stance_leg_controller.get_action()
     action = []
     for joint_id in range(self._robot.num_motors):
       if joint_id in swing_action:
@@ -98,4 +98,5 @@ class LocomotionController(object):
       else:
         assert joint_id in stance_action
         action.extend(stance_action[joint_id])
-    return action
+
+    return action, dict(qp_sol=qp_sol)

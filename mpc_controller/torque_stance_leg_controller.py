@@ -40,7 +40,10 @@ _FORCE_DIMENSION = 3
 # Intuitively, this is the weights of each state dimension when tracking a
 # desired CoM trajectory. The full CoM state is represented by
 # (roll_pitch_yaw, position, angular_velocity, velocity, gravity_place_holder).
-_MPC_WEIGHTS =   (5, 5, 0.2, 0, 0, 10, 0.5, 0.5, 0.2, 0.2, 0.2, 0.1, 0)
+# _MPC_WEIGHTS = (5, 5, 0.2, 0, 0, 10, 0.5, 0.5, 0.2, 0.2, 0.2, 0.1, 0)
+# This worked well for in-place stepping in the real robot.
+# _MPC_WEIGHTS = (5, 5, 0.2, 0, 0, 10, 0., 0., 0.2, 1., 1., 0., 0)
+_MPC_WEIGHTS = (5, 5, 0.2, 0, 0, 10, 0., 0., 1., 1., 1., 0., 0)
 _PLANNING_HORIZON_STEPS = 10
 _PLANNING_TIMESTEP = 0.025
 
@@ -132,6 +135,9 @@ class TorqueStanceLegController(leg_controller.LegController):
     com_roll_pitch_yaw[2] = 0
 
     #predicted_contact_forces=[0]*self._num_legs*_FORCE_DIMENSION
+    # print("Com Vel: {}".format(self._state_estimator.com_velocity_body_frame))
+    # print("Com RPY: {}".format(self._robot.GetBaseRollPitchYawRate()))
+    # print("Com RPY Rate: {}".format(self._robot.GetBaseRollPitchYawRate()))
     p.submitProfileTiming("predicted_contact_forces")
     predicted_contact_forces = self._cpp_mpc.compute_contact_forces(
         [0],  #com_position
@@ -152,6 +158,11 @@ class TorqueStanceLegController(leg_controller.LegController):
         desired_com_angular_velocity  #desired_com_angular_velocity
     )
     p.submitProfileTiming()
+    # sol = np.array(predicted_contact_forces).reshape((-1, 12))
+    # x_dim = np.array([0, 3, 6, 9])
+    # y_dim = x_dim + 1
+    # z_dim = y_dim + 1
+    # print("Y_forces: {}".format(sol[:, y_dim]))
 
     contact_forces = {}
     for i in range(self._num_legs):
@@ -169,4 +180,4 @@ class TorqueStanceLegController(leg_controller.LegController):
       for joint_id, torque in motor_torques.items():
         action[joint_id] = (0, 0, 0, 0, torque)
 
-    return action
+    return action, contact_forces
