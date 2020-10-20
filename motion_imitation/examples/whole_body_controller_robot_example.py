@@ -3,14 +3,15 @@ from absl import app
 from absl import flags
 from absl import logging
 
+import copy
 import numpy as np
 import os
 from datetime import datetime
+import time
 import pickle
 import pybullet  # pytype:disable=import-error
 import pybullet_data
 from pybullet_utils import bullet_client
-import scipy
 
 from mpc_controller import com_velocity_estimator
 from mpc_controller import gait_generator as gait_generator_lib
@@ -23,45 +24,19 @@ from mpc_controller import torque_stance_leg_controller
 from motion_imitation.robots import a1_robot
 from motion_imitation.robots import robot_config
 
-flags.DEFINE_float("max_time_secs", 1., "max time to run the controller.")
+flags.DEFINE_integer("max_time_secs", 1, "max time to run the controller.")
 flags.DEFINE_string("logdir", None, "where to log trajectories.")
 FLAGS = flags.FLAGS
 
-# Stand
-# _DUTY_FACTOR = [1.] * 4
-# _INIT_PHASE_FULL_CYCLE = [0., 0., 0., 0.]
-# _MAX_TIME_SECONDS = 5
-
-# _INIT_LEG_STATE = (
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-# )
-
-# Tripod
-# _STANCE_DURATION_SECONDS = [
-#     0.7
-# ] * 4
-# _DUTY_FACTOR = [.8] * 4
-# _INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.75]
-# _MAX_TIME_SECONDS = 5
-
-# _INIT_LEG_STATE = (
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-# )
-
-# Trotting
-_STANCE_DURATION_SECONDS = [0.3] * 4
-_DUTY_FACTOR = [0.6] * 4
-_INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
-_MAX_TIME_SECONDS = 5
+_NUM_SIMULATION_ITERATION_STEPS = 300
+_STANCE_DURATION_SECONDS = [
+    0.5
+] * 4  # For faster trotting (v > 1.5 ms reduce this to 0.13s).
+_DUTY_FACTOR = [.75] * 4
+_INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.]
 
 _INIT_LEG_STATE = (
-    gait_generator_lib.LegState.SWING,
+    gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.SWING,
@@ -117,24 +92,6 @@ def _update_controller_params(controller, lin_speed, ang_speed):
   controller.stance_leg_controller.desired_speed = lin_speed
   controller.stance_leg_controller.desired_twisting_speed = ang_speed
 
-def _generate_example_linear_angular_speed(t):
-  """Creates an example speed profile based on time for demo purpose."""
-  vx = 0.2
-  vy = 0.2
-  wz = 0.8
-
-  time_points = (0, 5, 10, 15, 20, 25, 30)
-  speed_points = ((0, 0, 0, 0), (0, 0, 0, wz), (vx, 0, 0, 0), (0, 0, 0, -wz),
-                  (0, -vy, 0, 0), (0, 0, 0, 0), (0, 0, 0, wz))
-
-  speed = scipy.interpolate.interp1d(time_points,
-                                     speed_points,
-                                     kind="previous",
-                                     fill_value="extrapolate",
-                                     axis=0)(t)
-
-  return speed[0:3], speed[3]
-
 
 def _run_example():
   """Runs the locomotion controller example."""
@@ -150,42 +107,40 @@ def _run_example():
   controller.reset()
 
   actions = []
-  states = []
-
+  raw_states = []
+  timestamps, com_vels, imu_rates = [], [], []
   start_time = robot.GetTimeSinceReset()
   current_time = start_time
 
   while current_time - start_time < FLAGS.max_time_secs:
     # Updates the controller behavior parameters.
-    lin_speed, ang_speed = _generate_example_linear_angular_speed(current_time)
+    lin_speed, ang_speed = (0., 0., 0.), 0.
     _update_controller_params(controller, lin_speed, ang_speed)
 
     # Needed before every call to get_action().
     controller.update()
-    current_time = robot.GetTimeSinceReset()
-    hybrid_action, info = controller.get_action()
+    hybrid_action = controller.get_action()
+    raw_states.append(copy.deepcopy(robot._raw_state))  # pylint:disable=protected-access
+    com_vels.append(robot.GetBaseVelocity().copy())
+    imu_rates.append(robot.GetBaseRollPitchYawRate().copy())
     actions.append(hybrid_action)
     robot.Step(hybrid_action)
-    states.append(
-        dict(timestamp=robot.GetTimeSinceReset(),
-             base_rpy=robot.GetBaseRollPitchYaw(),
-             motor_angles=robot.GetMotorAngles(),
-             base_vel=robot.GetBaseVelocity(),
-             base_vels_body_frame=controller.state_estimator.
-             com_velocity_body_frame,
-             base_rpy_rate=robot.GetBaseRollPitchYawRate(),
-             motor_vels=robot.GetMotorVelocities(),
-             contacts=robot.GetFootContacts(),
-             qp_sol=info['qp_sol']))
+    current_time = robot.GetTimeSinceReset()
+    timestamps.append(current_time)
+    time.sleep(0.003)
 
-  # robot.Reset()
+  robot.Reset()
   robot.Terminate()
   if FLAGS.logdir:
     logdir = os.path.join(FLAGS.logdir,
                           datetime.now().strftime('%Y_%m_%d_%H_%M_%S'))
     os.makedirs(logdir)
-    np.savez(os.path.join(logdir, 'action.npz'), action=actions)
-    pickle.dump(states, open(os.path.join(logdir, 'states.pkl'), 'wb'))
+    np.savez(os.path.join(logdir, 'action.npz'),
+             action=actions,
+             com_vels=com_vels,
+             imu_rates=imu_rates,
+             timestamps=timestamps)
+    pickle.dump(raw_states, open(os.path.join(logdir, 'raw_states.pkl'), 'wb'))
     logging.info("logged to: {}".format(logdir))
 
 

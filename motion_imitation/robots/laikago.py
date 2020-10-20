@@ -144,6 +144,7 @@ class Laikago(minitaur.Minitaur):
   def __init__(
       self,
       pybullet_client,
+      motor_control_mode,
       urdf_filename=URDF_FILENAME,
       enable_clip_motor_commands=False,
       time_step=0.001,
@@ -153,7 +154,6 @@ class Laikago(minitaur.Minitaur):
       on_rack=False,
       enable_action_interpolation=True,
       enable_action_filter=False,
-      motor_control_mode,
       reset_time=-1,
       allow_knee_contact=False,
   ):

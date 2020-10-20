@@ -35,44 +35,30 @@ FLAGS = flags.FLAGS
 _NUM_SIMULATION_ITERATION_STEPS = 300
 
 _STANCE_DURATION_SECONDS = [
-    0.3
+    0.5
 ] * 4  # For faster trotting (v > 1.5 ms reduce this to 0.13s).
 
-# Standing
-# _DUTY_FACTOR = [1.] * 4
-# _INIT_PHASE_FULL_CYCLE = [0., 0., 0., 0.]
-# _MAX_TIME_SECONDS = 5
-
-# _INIT_LEG_STATE = (
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.SWING,
-# )
-
-# Tripod
-# _DUTY_FACTOR = [.8] * 4
-# _INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.]
-# _MAX_TIME_SECONDS = 5
-
-# _INIT_LEG_STATE = (
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.STANCE,
-#     gait_generator_lib.LegState.SWING,
-# )
-
-# Trotting
-_DUTY_FACTOR = [0.6] * 4
-_INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
-_MAX_TIME_SECONDS = 1
+_DUTY_FACTOR = [.75] * 4
+_INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.]
+_MAX_TIME_SECONDS = 5
 
 _INIT_LEG_STATE = (
-    gait_generator_lib.LegState.SWING,
+    gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.STANCE,
     gait_generator_lib.LegState.SWING,
 )
+
+# _DUTY_FACTOR = [0.6] * 4
+# _INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
+# _MAX_TIME_SECONDS = 5
+
+# _INIT_LEG_STATE = (
+#     gait_generator_lib.LegState.SWING,
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.STANCE,
+#     gait_generator_lib.LegState.SWING,
+# )
 
 
 def _generate_example_linear_angular_speed(t):
@@ -105,8 +91,7 @@ def _setup_controller(robot):
       duty_factor=_DUTY_FACTOR,
       initial_leg_phase=_INIT_PHASE_FULL_CYCLE,
       initial_leg_state=_INIT_LEG_STATE)
-  state_estimator = com_velocity_estimator.COMVelocityEstimator(robot,
-                                                                window_size=20)
+  state_estimator = com_velocity_estimator.COMVelocityEstimator(robot)
   sw_controller = raibert_swing_leg_controller.RaibertSwingLegController(
       robot,
       gait_generator,
@@ -180,7 +165,7 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
         0., 0., 0.), 0.  #_generate_example_linear_angular_speed(current_time)
     _update_controller_params(controller, lin_speed, ang_speed)
     controller.update()
-    hybrid_action, _ = controller.get_action()
+    hybrid_action = controller.get_action()
     com_vels.append(np.array(robot.GetBaseVelocity()).copy())
     imu_rates.append(np.array(robot.GetBaseRollPitchYawRate()).copy())
     actions.append(hybrid_action)

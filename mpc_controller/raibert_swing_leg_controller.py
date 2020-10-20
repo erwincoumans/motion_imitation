@@ -2,7 +2,14 @@
 
 from __future__ import absolute_import
 from __future__ import division
+#from __future__ import google_type_annotations
 from __future__ import print_function
+
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
 
 import copy
 import math
@@ -10,11 +17,12 @@ import math
 import numpy as np
 from typing import Any, Mapping, Sequence, Tuple
 
-from locomotion.agents.mpc_controller import gait_generator as gait_generator_lib
-from locomotion.agents.mpc_controller import leg_controller
+from mpc_controller import gait_generator as gait_generator_lib
+from mpc_controller import leg_controller
 
 # The position correction coefficients in Raibert's formula.
-_KP = np.array([0.01, 0.01, 0.01]) * 3
+_KP = 0.05
+
 # At the end of swing, we leave a small clearance to prevent unexpected foot
 # collision.
 _FOOT_CLEARANCE_M = 0.01
@@ -77,9 +85,10 @@ def _gen_swing_foot_trajectory(input_phase: float, start_pos: Sequence[float],
   max_clearance = 0.1
   mid = max(end_pos[2], start_pos[2]) + max_clearance
   z = _gen_parabola(phase, start_pos[2], mid, end_pos[2])
-
+  
   # PyType detects the wrong return type here.
   return (x, y, z)  # pytype: disable=bad-return-type
+
 
 
 class RaibertSwingLegController(leg_controller.LegController):
@@ -90,12 +99,13 @@ class RaibertSwingLegController(leg_controller.LegController):
   the CoM moving speed.
 
   """
+
   def __init__(
       self,
       robot: Any,
       gait_generator: Any,
       state_estimator: Any,
-      desired_speed: Tuple[float, float],
+      desired_speed: Tuple[float],
       desired_twisting_speed: float,
       desired_height: float,
       foot_clearance: float,
@@ -148,8 +158,8 @@ class RaibertSwingLegController(leg_controller.LegController):
     # Detects phase switch for each leg so we can remember the feet position at
     # the beginning of the swing phase.
     for leg_id, state in enumerate(new_leg_state):
-      if (state == gait_generator_lib.LegState.SWING
-          and state != self._last_leg_state[leg_id]):
+      if (state == gait_generator_lib.LegState.SWING and
+          state != self._last_leg_state[leg_id]):
         self._phase_switch_foot_local_position[leg_id] = (
             self._robot.GetFootPositionsInBaseFrame()[leg_id])
 
@@ -163,32 +173,33 @@ class RaibertSwingLegController(leg_controller.LegController):
     hip_positions = self._robot.GetHipPositionsInBaseFrame()
 
     for leg_id, leg_state in enumerate(self._gait_generator.leg_state):
-      if leg_state in (gait_generator_lib.LegState.STANCE,
-                       gait_generator_lib.LegState.EARLY_CONTACT):
+      if (leg_state == gait_generator_lib.LegState.STANCE or
+          leg_state == gait_generator_lib.LegState.EARLY_CONTACT):
         continue
 
       # For now we did not consider the body pitch/roll and all calculation is
       # in the body frame. TODO(b/143378213): Calculate the foot_target_position
-      # in world frame and then project back to calculate the joint angles.
+      # in world farme and then project back to calculate the joint angles.
       hip_offset = hip_positions[leg_id]
       twisting_vector = np.array((-hip_offset[1], hip_offset[0], 0))
       hip_horizontal_velocity = com_velocity + yaw_dot * twisting_vector
-      # print("Leg: {}, ComVel: {}, Yaw_dot: {}".format(leg_id, com_velocity,
-      #                                                 yaw_dot))
-      # print(hip_horizontal_velocity)
       target_hip_horizontal_velocity = (
           self.desired_speed + self.desired_twisting_speed * twisting_vector)
+
       foot_target_position = (
           hip_horizontal_velocity *
-          self._gait_generator.stance_duration[leg_id] / 2 - _KP *
+          self._gait_generator.swing_duration[leg_id] / 2 - _KP *
           (target_hip_horizontal_velocity - hip_horizontal_velocity)
       ) - self._desired_height + np.array((hip_offset[0], hip_offset[1], 0))
+
       foot_position = _gen_swing_foot_trajectory(
           self._gait_generator.normalized_phase[leg_id],
           self._phase_switch_foot_local_position[leg_id], foot_target_position)
+
       joint_ids, joint_angles = (
           self._robot.ComputeMotorAnglesFromFootLocalPosition(
               leg_id, foot_position))
+
       # Update the stored joint angles as needed.
       for joint_id, joint_angle in zip(joint_ids, joint_angles):
         self._joint_angles[joint_id] = (joint_angle, leg_id)

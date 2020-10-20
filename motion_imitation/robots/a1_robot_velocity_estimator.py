@@ -21,7 +21,7 @@ class VelocityEstimator:
                accelerometer_variance=0.1,
                sensor_variance=0.1,
                initial_variance=0.1,
-               moving_window_filter_size=30):
+               moving_window_filter_size=50):
     """Initiates the velocity estimator.
 
     See filterpy documentation in the link below for more details.
@@ -44,7 +44,8 @@ class VelocityEstimator:
 
     self.filter.H = np.eye(3)  # measurement function (y=H*x)
     self.filter.F = np.eye(3)  # state transition matrix
-    self.filter.B = np.eye(3)
+    self.filter.B = np.eye(
+        3) * self.robot.time_step  # Control transition matrix
 
     self._window_size = moving_window_filter_size
     self.moving_window_filter_x = MovingWindowFilter(
@@ -54,7 +55,6 @@ class VelocityEstimator:
     self.moving_window_filter_z = MovingWindowFilter(
         window_size=self._window_size)
     self._estimated_velocity = np.zeros(3)
-    self._last_timestamp = 0
 
   def reset(self):
     self.filter.x = np.zeros(3)
@@ -65,27 +65,16 @@ class VelocityEstimator:
         window_size=self._window_size)
     self.moving_window_filter_z = MovingWindowFilter(
         window_size=self._window_size)
-    self._last_timestamp = 0
-
-  def _compute_delta_time(self, robot_state):
-    if self._last_timestamp == 0.:
-      # First timestamp received, return an estimated delta_time.
-      delta_time_s = self.robot.time_step
-    else:
-      delta_time_s = (robot_state.tick - self._last_timestamp) / 1000.
-    self._last_timestamp = robot_state.tick
-    return delta_time_s
 
   def update(self, robot_state):
     """Propagate current state estimate with new accelerometer reading."""
-    delta_time_s = self._compute_delta_time(robot_state)
     sensor_acc = np.array(robot_state.imu.accelerometer)
     base_orientation = self.robot.GetBaseOrientation()
     rot_mat = self.robot.pybullet_client.getMatrixFromQuaternion(
         base_orientation)
     rot_mat = np.array(rot_mat).reshape((3, 3))
     calibrated_acc = rot_mat.dot(sensor_acc) + np.array([0., 0., -9.8])
-    self.filter.predict(u=calibrated_acc * delta_time_s)
+    self.filter.predict(u=calibrated_acc)
 
     # Correct estimation using contact legs
     observed_velocities = []
