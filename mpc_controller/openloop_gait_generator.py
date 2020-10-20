@@ -157,8 +157,8 @@ class OpenloopGaitGenerator(gait_generator.GaitGenerator):
       # explained before. If the current phase is less than the initial state
       # ratio, the leg is either in the initial state or has switched back after
       # one or more full cycles.
-      full_cycle_period = (
-          self._stance_duration[leg_id] / self._duty_factor[leg_id])
+      full_cycle_period = (self._stance_duration[leg_id] /
+                           self._duty_factor[leg_id])
       # To account for the non-zero initial phase, we offset the time duration
       # with the effect time contribution from the initial leg phase.
       augmented_time = current_time + self._initial_leg_phase[
@@ -172,8 +172,8 @@ class OpenloopGaitGenerator(gait_generator.GaitGenerator):
       else:
         # A phase switch happens for this leg.
         self._desired_leg_state[leg_id] = self._next_leg_state[leg_id]
-        self._normalized_phase[leg_id] = (phase_in_full_cycle - ratio) / (1 -
-                                                                          ratio)
+        self._normalized_phase[leg_id] = (phase_in_full_cycle -
+                                          ratio) / (1 - ratio)
 
       self._leg_state[leg_id] = self._desired_leg_state[leg_id]
 
@@ -182,10 +182,11 @@ class OpenloopGaitGenerator(gait_generator.GaitGenerator):
           self._contact_detection_phase_threshold):
         continue
 
-      if (self._leg_state[leg_id] == gait_generator.LegState.SWING and
-          contact_state[leg_id]):
-        logging.info("early touch down detected")
+      if (self._leg_state[leg_id] == gait_generator.LegState.SWING
+          and contact_state[leg_id]):
+        logging.info("early touch down detected.")
         self._leg_state[leg_id] = gait_generator.LegState.EARLY_CONTACT
-      if (self._leg_state[leg_id] == gait_generator.LegState.STANCE and
-          not contact_state[leg_id]):
+      if (self._leg_state[leg_id] == gait_generator.LegState.STANCE
+          and not contact_state[leg_id]):
+        logging.info("lost contact detected.")
         self._leg_state[leg_id] = gait_generator.LegState.LOSE_CONTACT
