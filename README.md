@@ -20,7 +20,7 @@ Install dependencies:
 
 and it should be good to go.
 
-## Training Models
+## Training Imitation Models
 
 To train a policy, run the following command:
 
@@ -38,7 +38,7 @@ For parallel training with MPI run:
 
 - `-n` is the number of parallel.
 
-## Testing Models
+## Testing Imitation Models
 
 To test a trained model, run the following command
 
@@ -47,14 +47,14 @@ To test a trained model, run the following command
 - `--model_file` specifies the `.zip` file that contains the trained model. Pretrained models are available in `motion_imitation/data/policies/`.
 
 
-## Data
+## Motion Capture Data
 
 - `motion_imitation/data/motions/` contains different reference motion clips.
 - `motion_imitation/data/policies/` contains pretrained models for the different reference motions.
 
 For more information on the reference motion data format, see the [DeepMimic documentation](https://github.com/xbpeng/DeepMimic)
 
-## Getting started
+## Getting started with MPC locomotion
 To start, just clone the codebase, and install the dependencies using
 ```bash
 pip install -r requirements.txt
@@ -96,7 +96,7 @@ which will pop up the standard pybullet renderer.
 
 And you can always call env.render(mode='rgb_array') to generate frames.
 
-## Running on the real A1 robot
+## Running MPC on the real A1 robot
 Since the [SDK](https://github.com/unitreerobotics/unitree_legged_sdk) from Unitree is implemented in C++, we find the optimal way of robot interfacing to be via C++-python interface using pybind11.
 
 ### Step 1: Build and Test the robot interface
