@@ -21,6 +21,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 os.sys.path.insert(0, parentdir)
 
+
 from absl import logging
 import math
 import re
@@ -32,8 +33,9 @@ from motion_imitation.robots import a1
 from motion_imitation.robots import a1_robot_velocity_estimator
 from motion_imitation.robots import minitaur
 from motion_imitation.robots import robot_config
-from motion_imitation.robots.unitree_legged_sdk import comm
 from motion_imitation.envs import locomotion_gym_config
+from robot_interface import RobotInterface  # pytype: disable=import-error
+from robot_interface import LowCmd  # pytype: disable=import-error
 
 NUM_MOTORS = 12
 NUM_LEGS = 4
@@ -258,6 +260,7 @@ class A1Robot(a1.A1):
 
     command = LowCmd()
     command.levelFlag = 0xff  #pylint:disable=invalid-name
+    motor_commands = np.asarray(motor_commands)
 
     if motor_control_mode == robot_config.MotorControlMode.POSITION:
       for motor_id in range(NUM_MOTORS):
