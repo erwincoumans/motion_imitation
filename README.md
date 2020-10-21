@@ -148,7 +148,7 @@ sudo python3 -m motion_imitation.examples.whole_body_controller_robot_example
 
 This repo was developed at Google Robotics and is maintained by one of its members, Erwin Coumans.
 The original Motion Imitation code was written by Jason Peng as part of an internship and student researcher at Google Robotics.
-Some MPC parts for A1 and running on real A1 are written by Yuxiang, a former resident researcher at Google Robotics.
+Some MPC parts for A1 and running on real A1 are written by Yuxiang Yang, a former resident researcher at Google Robotics.
 
 ---
 
