@@ -10,6 +10,7 @@ import pickle
 import pybullet  # pytype:disable=import-error
 import pybullet_data
 from pybullet_utils import bullet_client
+import scipy
 
 from mpc_controller import com_velocity_estimator
 from mpc_controller import gait_generator as gait_generator_lib

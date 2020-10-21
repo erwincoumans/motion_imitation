@@ -245,14 +245,15 @@ class Minitaur(object):
     self.ReceiveObservation()
     self._state_action_counter += 1
 
-  def Step(self, action):
+  def Step(self, action, control_mode=None):
     """Steps simulation."""
     if self._enable_action_filter:
       action = self._FilterAction(action)
-
+    if control_mode==None:
+      control_mode = self._motor_control_mode
     for i in range(self._action_repeat):
       proc_action = self.ProcessAction(action, i)
-      self._StepInternal(proc_action, self._motor_control_mode)
+      self._StepInternal(proc_action, control_mode)
       self._step_counter += 1
 
     self._last_action = action

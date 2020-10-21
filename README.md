@@ -126,7 +126,7 @@ You may need to reboot the computer for the above changes to get into effect.
 ### Step 3: Test robot interface.
 
 Test the python interfacing by running:
-`python -m motion_imitation.examples.test_robot_interface`
+'sudo python3 -m motion_imitation.examples.test_robot_interface'
 
 If the previous steps were completed correctly, the script should finish without throwing any errors.
 
@@ -136,12 +136,12 @@ Note that this code does *not* do anything on the actual robot.
 
 To see the whole-body MPC controller in sim, run:
 ```bash
-python -m motion_imitation.examples.whole_body_controller_example
+python3 -m motion_imitation.examples.whole_body_controller_example
 ```
 
 To see the whole-body MPC controller on the real robot, run:
 ```bash
-python -m motion_imitation.examples.whole_body_controller_robot_example
+sudo python3 -m motion_imitation.examples.whole_body_controller_robot_example
 ```
 
 ### Credits
