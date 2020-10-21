@@ -1,6 +1,6 @@
 # Motion Imitation
 
-Further development (bug fixes, new features etc) happen in the master branch.
+Further development (new features, bug fixes etc) happen in the master branch.
 The 'paper' branch of this repository contains the original code accompanying the paper:
 
 "Learning Agile Robotic Locomotion Skills by Imitating Animals",
