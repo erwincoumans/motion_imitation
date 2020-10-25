@@ -332,14 +332,14 @@ def main(argv):
       robot = pybullet.loadURDF(config.URDF_FILENAME, config.INIT_POS, config.INIT_ROT)
 
       p.removeAllUserDebugItems()
-      print("mocap_name=", f"{mocap_motion[0]}.txt")
+      print("mocap_name=", mocap_motion[0])
       joint_pos_data = load_ref_data(mocap_motion[1],mocap_motion[2],mocap_motion[3])
     
       num_markers = joint_pos_data.shape[-1] // POS_SIZE
       marker_ids = build_markers(num_markers)
     
       retarget_frames = retarget_motion(robot, joint_pos_data)
-      output_motion(retarget_frames, mocap_motion[0])
+      output_motion(retarget_frames, f"{mocap_motion[0]}.txt")
     
       f = 0
       num_frames = joint_pos_data.shape[0]
