@@ -15,6 +15,7 @@
 
 import os
 import inspect
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 os.sys.path.insert(0, parentdir)
@@ -76,7 +77,9 @@ def build_laikago_env( motor_control_mode, enable_rendering):
 
 
 def build_imitation_env(motion_files, num_parallel_envs, mode,
-                        enable_randomizer, enable_rendering):
+                        enable_randomizer, enable_rendering,
+                        robot_class=laikago.Laikago,
+                        trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(action_limit=laikago.UPPER_BOUND)):
   assert len(motion_files) > 0
 
   curriculum_episode_length_start = 20
@@ -88,8 +91,6 @@ def build_imitation_env(motion_files, num_parallel_envs, mode,
   sim_params.motor_control_mode = robot_config.MotorControlMode.POSITION
 
   gym_config = locomotion_gym_config.LocomotionGymConfig(simulation_parameters=sim_params)
-
-  robot_class = laikago.Laikago
 
   sensors = [
       sensor_wrappers.HistoricSensorWrapper(wrapped_sensor=robot_sensors.MotorAngleSensor(num_motors=laikago.NUM_MOTORS), num_history=3),
@@ -113,7 +114,7 @@ def build_imitation_env(motion_files, num_parallel_envs, mode,
 
   env = observation_dictionary_to_array_wrapper.ObservationDictionaryToArrayWrapper(env)
   env = trajectory_generator_wrapper_env.TrajectoryGeneratorWrapperEnv(env,
-                                                                       trajectory_generator=simple_openloop.LaikagoPoseOffsetGenerator(action_limit=laikago.UPPER_BOUND))
+                                                                       trajectory_generator=trajectory_generator)
 
   if mode == "test":
       curriculum_episode_length_start = curriculum_episode_length_end
