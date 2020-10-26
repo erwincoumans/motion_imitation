@@ -1,6 +1,6 @@
 # Motion Imitation
 
-Further development (bug fixes, new features etc) happen in the master branch.
+Further development (new features, bug fixes etc) happen in the master branch.
 The 'paper' branch of this repository contains the original code accompanying the paper:
 
 "Learning Agile Robotic Locomotion Skills by Imitating Animals",
@@ -22,7 +22,7 @@ Install dependencies:
 
 and it should be good to go.
 
-## Training Models
+## Training Imitation Models
 
 To train a policy, run the following command:
 
@@ -40,7 +40,7 @@ For parallel training with MPI run:
 
 - `-n` is the number of parallel.
 
-## Testing Models
+## Testing Imitation Models
 
 To test a trained model, run the following command
 
@@ -49,7 +49,7 @@ To test a trained model, run the following command
 - `--model_file` specifies the `.zip` file that contains the trained model. Pretrained models are available in `motion_imitation/data/policies/`.
 
 
-## Data
+## Motion Capture Data
 
 - `motion_imitation/data/motions/` contains different reference motion clips.
 - `motion_imitation/data/policies/` contains pretrained models for the different reference motions.
@@ -59,7 +59,6 @@ For more information on the reference motion data format, see the [DeepMimic doc
 # Locomotion using Model Predictive Control
 
 [![whole body MPC locomotion for real A1 robot and PyBullet](https://github.com/erwincoumans/motion_imitation/blob/master/motion_imitation/data/mpc_a1.png)](https://www.youtube.com/watch?v=NPvuap-SD78&hd=1 "whole body MPC locomotion for real A1 robot and PyBullet")
-
 
 ## Getting started with MPC and the environment
 To start, just clone the codebase, and install the dependencies using
@@ -155,7 +154,7 @@ sudo python3 -m motion_imitation.examples.whole_body_controller_robot_example
 
 This repo was developed at Google Robotics and is maintained by one of its members, Erwin Coumans.
 The original Motion Imitation code was written by Jason Peng as part of an internship and student researcher at Google Robotics.
-Some MPC parts for A1 and running on real A1 are written by Yuxiang, a former resident researcher at Google Robotics.
+Some MPC parts for A1 and running on real A1 are written by Yuxiang Yang, a former resident researcher at Google Robotics.
 
 ---
 
