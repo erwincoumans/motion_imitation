@@ -7,6 +7,8 @@ The 'paper' branch of this repository contains the original code accompanying th
 
 by Xue Bin Peng et al. It provides a Gym environment for training a simulated quadruped robot to imitate various reference motions, and example training code for learning the policies.
 
+[![Learning Agile Robotic Locomotion Skills by Imitating Animals](https://github.com/erwincoumans/motion_imitation/blob/master/motion_imitation/data/motion_imitation2.png)](https://www.youtube.com/watch?v=lKYh6uuCwRY&feature=youtu.be&hd=1 "Learning Agile Robotic Locomotion Skills by Imitating Animals")
+
 Project page: https://xbpeng.github.io/projects/Robotic_Imitation/index.html
 
 ## Getting Started
@@ -54,7 +56,11 @@ To test a trained model, run the following command
 
 For more information on the reference motion data format, see the [DeepMimic documentation](https://github.com/xbpeng/DeepMimic)
 
-## Getting started with MPC locomotion
+# Locomotion using Model Predictive Control
+
+[![whole body MPC locomotion for real A1 robot and PyBullet](https://github.com/erwincoumans/motion_imitation/blob/master/motion_imitation/data/mpc_a1.png)](https://www.youtube.com/watch?v=NPvuap-SD78&hd=1 "whole body MPC locomotion for real A1 robot and PyBullet")
+
+## Getting started with MPC and the environment
 To start, just clone the codebase, and install the dependencies using
 ```bash
 pip install -r requirements.txt
