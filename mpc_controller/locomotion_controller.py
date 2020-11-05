@@ -10,14 +10,9 @@ import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 os.sys.path.insert(0, parentdir)
-
+import numpy as np
 import time
 from typing import Any, Callable
-
-from mpc_controller import gait_generator as gait_generator_lib
-from mpc_controller import leg_controller as leg_controller_lib
-
-
 
 class LocomotionController(object):
   """Generates the quadruped locomotion.
@@ -26,7 +21,6 @@ class LocomotionController(object):
   individual subcomponent.
 
   """
-
   def __init__(
       self,
       robot: Any,
@@ -90,7 +84,9 @@ class LocomotionController(object):
   def get_action(self):
     """Returns the control ouputs (e.g. positions/torques) for all motors."""
     swing_action = self._swing_leg_controller.get_action()
+    # start_time = time.time()
     stance_action, qp_sol = self._stance_leg_controller.get_action()
+    # print(time.time() - start_time)
     action = []
     for joint_id in range(self._robot.num_motors):
       if joint_id in swing_action:
@@ -98,5 +94,6 @@ class LocomotionController(object):
       else:
         assert joint_id in stance_action
         action.extend(stance_action[joint_id])
+    action = np.array(action, dtype=np.float32)
 
     return action, dict(qp_sol=qp_sol)

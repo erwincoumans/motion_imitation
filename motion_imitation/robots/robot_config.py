@@ -23,15 +23,15 @@ import enum
 
 class MotorControlMode(enum.Enum):
   """The supported motor control modes."""
-  POSITION = 1,
+  POSITION = 1
 
   # Apply motor torques directly.
-  TORQUE = 2,
+  TORQUE = 2
 
   # Apply a tuple (q, qdot, kp, kd, tau) for each motor. Here q, qdot are motor
   # position and velocities. kp and kd are PD gains. tau is the additional
   # motor torque. This is the most flexible control mode.
-  HYBRID = 3,
+  HYBRID = 3
 
   # PWM mode is only availalbe for Minitaur
   PWM = 4

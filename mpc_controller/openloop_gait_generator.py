@@ -30,7 +30,6 @@ _NOMINAL_DUTY_FACTOR = (0.5, 0.5, 0.5, 0.5)
 _NOMINAL_CONTACT_DETECTION_PHASE = 0.1
 
 
-
 class OpenloopGaitGenerator(gait_generator.GaitGenerator):
   """Generates openloop gaits for quadruped robots.
 
@@ -39,7 +38,6 @@ class OpenloopGaitGenerator(gait_generator.GaitGenerator):
   easily formuate a set of common quadruped gaits like trotting, pacing,
   pronking, bounding, etc by tweaking the input parameters.
   """
-
   def __init__(
       self,
       robot: Any,

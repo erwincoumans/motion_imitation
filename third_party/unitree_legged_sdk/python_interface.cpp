@@ -4,6 +4,7 @@ Use of this source code is governed by the MPL-2.0 license, see LICENSE.
 ************************************************************************/
 
 #include "unitree_legged_sdk/unitree_legged_sdk.h"
+#include <array>
 #include <math.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
@@ -15,15 +16,16 @@ class RobotInterface
 {
 public:
     RobotInterface() : safe(LeggedType::A1), udp(LOWLEVEL){
-        InitEnvironment();
+        // InitEnvironment();
     }
     LowState ReceiveObservation();
-    void SendCommand(LowCmd cmd);
+    void SendCommand(std::array<float, 60> motorcmd);
     void Initialize();
 
     UDP udp;
     Safety safe;
     LowState state = {0};
+    LowCmd cmd = {0};
 };
 
 LowState RobotInterface::ReceiveObservation() {
@@ -32,7 +34,16 @@ LowState RobotInterface::ReceiveObservation() {
     return state;
 }
 
-void RobotInterface::SendCommand(LowCmd cmd) {
+void RobotInterface::SendCommand(std::array<float, 60> motorcmd) {
+    cmd.levelFlag = 0xff;
+    for (int motor_id = 0; motor_id < 12; motor_id++) {
+        cmd.motorCmd[motor_id].mode = 0x0A;
+        cmd.motorCmd[motor_id].q = motorcmd[motor_id * 5];
+        cmd.motorCmd[motor_id].Kp = motorcmd[motor_id * 5 + 1];
+        cmd.motorCmd[motor_id].dq = motorcmd[motor_id * 5 + 2];
+        cmd.motorCmd[motor_id].Kd = motorcmd[motor_id * 5 + 3];
+        cmd.motorCmd[motor_id].tau = motorcmd[motor_id * 5 + 4];
+    }
     safe.PositionLimit(cmd);
     udp.SetSend(cmd);
     udp.Send();
