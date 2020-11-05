@@ -28,7 +28,6 @@ from mpc_controller import torque_stance_leg_controller_quadprog as torque_stanc
 
 
 from motion_imitation.robots import a1
-#from motion_imitation.robots import a1_robot
 from motion_imitation.robots import robot_config
 from motion_imitation.robots.gamepad import gamepad_reader
 
@@ -167,6 +166,7 @@ def main(argv):
 
   # Construct robot class:
   if FLAGS.use_real_robot:
+    from motion_imitation.robots import a1_robot
     robot = a1_robot.A1Robot(
         pybullet_client=p,
         motor_control_mode=robot_config.MotorControlMode.HYBRID,
@@ -199,6 +199,7 @@ def main(argv):
   current_time = start_time
   com_vels, imu_rates, actions = [], [], []
   while current_time - start_time < FLAGS.max_time_secs:
+    #time.sleep(0.0008) #on some fast computer, works better with sleep on real A1?
     start_time_robot = current_time
     start_time_wall = time.time()
     # Updates the controller behavior parameters.
