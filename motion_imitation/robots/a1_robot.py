@@ -35,7 +35,6 @@ from motion_imitation.robots import minitaur
 from motion_imitation.robots import robot_config
 from motion_imitation.envs import locomotion_gym_config
 from robot_interface import RobotInterface  # pytype: disable=import-error
-from robot_interface import LowCmd  # pytype: disable=import-error
 
 NUM_MOTORS = 12
 NUM_LEGS = 4
@@ -66,10 +65,10 @@ PI = math.pi
 
 MAX_MOTOR_ANGLE_CHANGE_PER_STEP = 0.2
 _DEFAULT_HIP_POSITIONS = (
-    (0.17, -0.14, 0),
-    (0.17, 0.14, 0),
-    (-0.17, -0.14, 0),
-    (-0.17, 0.14, 0),
+    (0.17, -0.135, 0),
+    (0.17, 0.13, 0),
+    (-0.195, -0.135, 0),
+    (-0.195, 0.13, 0),
 )
 
 ABDUCTION_P_GAIN = 100.0
@@ -103,8 +102,8 @@ _LINK_A_FIELD_NUMBER = 3
 
 class A1Robot(a1.A1):
   """Interface for real A1 robot."""
-  MPC_BODY_MASS = 10
-  MPC_BODY_INERTIA = np.array((0.017, 0, 0, 0, 0.057, 0, 0, 0, 0.064)) * 2.
+  MPC_BODY_MASS = 108 / 9.8
+  MPC_BODY_INERTIA = np.array((0.24, 0, 0, 0, 0.80, 0, 0, 0, 1.00))
 
   MPC_BODY_HEIGHT = 0.24
   ACTION_CONFIG = [
@@ -168,9 +167,7 @@ class A1Robot(a1.A1):
 
     # Initiate UDP for robot state and actions
     self._robot_interface = RobotInterface()
-    command = LowCmd()
-    command.levelFlag = 0xff  # pylint: disable=C0103
-    self._robot_interface.send_command(command)
+    self._robot_interface.send_command(np.zeros(60, dtype=np.float32))
 
     kwargs['on_rack'] = True
     super(A1Robot, self).__init__(pybullet_client,
@@ -195,7 +192,7 @@ class A1Robot(a1.A1):
     self._joint_states = np.array(
         list(zip(self._motor_angles, self._motor_velocities)))
     if self._init_complete:
-      self._SetRobotStateInSim(self._motor_angles, self._motor_velocities)
+      # self._SetRobotStateInSim(self._motor_angles, self._motor_velocities)
       self._velocity_estimator.update(self._raw_state)
 
   def _SetRobotStateInSim(self, motor_angles, motor_velocities):
@@ -258,34 +255,17 @@ class A1Robot(a1.A1):
     if motor_control_mode is None:
       motor_control_mode = self._motor_control_mode
 
-    command = LowCmd()
-    command.levelFlag = 0xff  #pylint:disable=invalid-name
-    motor_commands = np.asarray(motor_commands)
-
+    command = np.zeros(60, dtype=np.float32)
     if motor_control_mode == robot_config.MotorControlMode.POSITION:
       for motor_id in range(NUM_MOTORS):
-        command.motorCmd[motor_id].mode = 0x0A
-        command.motorCmd[motor_id].q = motor_commands[motor_id]
-        command.motorCmd[motor_id].Kp = self.motor_kps[motor_id]
-        command.motorCmd[motor_id].dq = 0
-        command.motorCmd[motor_id].Kd = self.motor_kds[motor_id]
-        command.motorCmd[motor_id].tau = 0
+        command[motor_id * 5] = motor_commands[motor_id]
+        command[motor_id * 5 + 1] = self.motor_kps[motor_id]
+        command[motor_id * 5 + 3] = self.motor_kds[motor_id]
     elif motor_control_mode == robot_config.MotorControlMode.TORQUE:
       for motor_id in range(NUM_MOTORS):
-        command.motorCmd[motor_id].mode = 0x0A
-        command.motorCmd[motor_id].q = 0
-        command.motorCmd[motor_id].Kp = 0
-        command.motorCmd[motor_id].dq = 0
-        command.motorCmd[motor_id].Kd = 0
-        command.motorCmd[motor_id].tau = motor_commands[motor_id]
+        command[motor_id * 5 + 4] = motor_commands[motor_id]
     elif motor_control_mode == robot_config.MotorControlMode.HYBRID:
-      for motor_id in range(NUM_MOTORS):
-        command.motorCmd[motor_id].mode = 0x0A
-        command.motorCmd[motor_id].q = motor_commands[motor_id * 5]
-        command.motorCmd[motor_id].Kp = motor_commands[motor_id * 5 + 1]
-        command.motorCmd[motor_id].dq = motor_commands[motor_id * 5 + 2]
-        command.motorCmd[motor_id].Kd = motor_commands[motor_id * 5 + 3]
-        command.motorCmd[motor_id].tau = motor_commands[motor_id * 5 + 4]
+      command = np.array(motor_commands, dtype=np.float32)
     else:
       raise ValueError('Unknown motor control mode for A1 robot: {}.'.format(
           motor_control_mode))
@@ -324,3 +304,8 @@ class A1Robot(a1.A1):
 
   def Terminate(self):
     self._is_alive = False
+
+  def _StepInternal(self, action, motor_control_mode=None):
+    self.ApplyAction(action, motor_control_mode)
+    self.ReceiveObservation()
+    self._state_action_counter += 1
