@@ -7,3 +7,8 @@ tensorflow==1.15.4
 tensorboard==1.15.0
 typing==3.7.4.1
 stable-baselines==2.10.0
+tqdm
+numba
+quadprog
+inputs
+
