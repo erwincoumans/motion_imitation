@@ -21,7 +21,7 @@ class VelocityEstimator:
                accelerometer_variance=0.1,
                sensor_variance=0.1,
                initial_variance=0.1,
-               moving_window_filter_size=30):
+               moving_window_filter_size=120):
     """Initiates the velocity estimator.
 
     See filterpy documentation in the link below for more details.
@@ -94,8 +94,6 @@ class VelocityEstimator:
       if foot_contact[leg_id]:
         jacobian = self.robot.ComputeJacobian(leg_id)
         # Only pick the jacobian related to joint motors
-        com_dof = 6
-        jacobian = jacobian[:, com_dof + leg_id * 3:com_dof + (leg_id + 1) * 3]
         joint_velocities = self.robot.motor_velocities[leg_id *
                                                        3:(leg_id + 1) * 3]
         leg_velocity_in_base_frame = jacobian.dot(joint_velocities)
