@@ -23,7 +23,6 @@ os.sys.path.insert(0, parentdir)
 
 import math
 import re
-import numba
 import numpy as np
 import pybullet as pyb  # pytype: disable=import-error
 
@@ -95,7 +94,6 @@ _BODY_B_FIELD_NUMBER = 2
 _LINK_A_FIELD_NUMBER = 3
 
 
-@numba.jit(nopython=True, cache=True)
 def foot_position_in_hip_frame_to_joint_angle(foot_position, l_hip_sign=1):
   l_up = 0.2
   l_low = 0.2
@@ -112,7 +110,6 @@ def foot_position_in_hip_frame_to_joint_angle(foot_position, l_hip_sign=1):
   return np.array([theta_ab, theta_hip, theta_knee])
 
 
-@numba.jit(nopython=True, cache=True)
 def foot_position_in_hip_frame(angles, l_hip_sign=1):
   theta_ab, theta_hip, theta_knee = angles[0], angles[1], angles[2]
   l_up = 0.2
@@ -132,7 +129,6 @@ def foot_position_in_hip_frame(angles, l_hip_sign=1):
   return np.array([off_x, off_y, off_z])
 
 
-@numba.jit(nopython=True, cache=True)
 def analytical_leg_jacobian(leg_angles, leg_id):
   """
   Computes the analytical Jacobian.
@@ -168,7 +164,6 @@ foot_position_in_hip_frame_to_joint_angle(np.random.uniform(size=3), 1)
 foot_position_in_hip_frame_to_joint_angle(np.random.uniform(size=3), -1)
 
 
-@numba.jit(nopython=True, cache=True, parallel=True)
 def foot_positions_in_base_frame(foot_angles):
   foot_angles = foot_angles.reshape((4, 3))
   foot_positions = np.zeros((4, 3))
