@@ -222,7 +222,7 @@ def main(argv):
       actual_duration = time.time() - start_time_wall
       if actual_duration < expected_duration:
         time.sleep(expected_duration - actual_duration)
-
+    print("actual_duration=", actual_duration)
   if FLAGS.use_gamepad:
     gamepad.stop()
 
