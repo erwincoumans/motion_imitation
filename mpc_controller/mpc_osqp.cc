@@ -41,7 +41,15 @@ using Eigen::MatrixXd;
 using Eigen::Quaterniond;
 using Eigen::Vector3d;
 using Eigen::VectorXd;
+#include "qpOASES.hpp"
+#include "qpOASES/Types.hpp"
 
+using qpOASES::QProblem;
+  
+typedef Eigen::Matrix<qpOASES::real_t, Eigen::Dynamic, Eigen::Dynamic,
+                      Eigen::RowMajor>
+    RowMajorMatrixXd;
+    
 constexpr int k3Dim = 3;
 constexpr double kGravity = 9.8;
 constexpr double kMaxScale = 10;
@@ -51,6 +59,75 @@ constexpr double kMinScale = 0.1;
 #include "Eigen/SparseCore"
 #include "osqp/include/ctrlc.h"
 #include "osqp/include/osqp.h"
+
+
+
+enum QPSolverName
+{
+  OSQP, QPOASES
+};
+
+
+// Auxiliary function for copying data to qpOASES data structure.
+void CopyToVec(const Eigen::VectorXd& vec,
+               const std::vector<int> foot_contact_states, int num_legs,
+               int planning_horizon, int blk_size,
+               std::vector<qpOASES::real_t>* out) {
+  int buffer_index = 0;
+  for (int i = 0; i < num_legs * planning_horizon; ++i) {
+    int leg_id = (i % num_legs);
+    if (foot_contact_states[leg_id] == 0) {
+      // skip the block.
+      continue;
+    }
+    // otherwise copy this block.
+    assert(buffer_index < out->size());
+    for (int j = 0; j < blk_size; ++j) {
+      int index = i * blk_size + j;
+      (*out)[buffer_index] = vec[index];
+      ++buffer_index;
+    }
+  }
+}
+
+// Auxiliary function for copying data to qpOASES data structure.
+void CopyToMatrix(const Eigen::MatrixXd& input,
+                  const std::vector<int> foot_contact_states, int num_legs,
+                  int planning_horizon, int row_blk_size, int col_blk_size,
+                  bool is_block_diagonal, Eigen::Map<RowMajorMatrixXd>* out) {
+  // the block index in the destination matrix.
+  int row_blk = 0;
+  for (int i = 0; i < planning_horizon * num_legs; ++i) {
+    int leg_id = (i % num_legs);
+    if (foot_contact_states[leg_id] == 0) {
+      // skip the row block.
+      continue;
+    }
+    if (is_block_diagonal) {
+      // just copy the block
+      int col_blk = row_blk;
+      out->block(row_blk * row_blk_size, col_blk * col_blk_size, row_blk_size,
+                 col_blk_size) = input.block(i * row_blk_size, i * col_blk_size,
+                                             row_blk_size, col_blk_size);
+    } else {
+      int col_blk = 0;
+      // Non-diagonal, need to copy all elements.
+      for (int j = 0; j < planning_horizon * num_legs; ++j) {
+        int leg_id = (j % num_legs);
+        if (foot_contact_states[leg_id] == 0) {
+          // skip the col block.
+          continue;
+        }
+        out->block(row_blk * row_blk_size, col_blk * col_blk_size, row_blk_size,
+                   col_blk_size) =
+            input.block(i * row_blk_size, j * col_blk_size, row_blk_size,
+                        col_blk_size);
+        ++col_blk;
+      }
+    }
+    ++row_blk;
+  }
+}
 
 
 // Converts the roll pitchh yaw angle vector to the corresponding rotation
@@ -124,7 +201,8 @@ public:
 
     ConvexMpc(double mass, const std::vector<double>& inertia, int num_legs,
         int planning_horizon, double timestep,
-        const std::vector<double>& qp_weights, double alpha = 1e-5);
+        const std::vector<double>& qp_weights, double alpha = 1e-5, 
+          QPSolverName qp_solver_name=QPOASES);
 
     virtual ~ConvexMpc()
     {
@@ -164,6 +242,7 @@ private:
     const int num_legs_;
     const int planning_horizon_;
     const double timestep_;
+    QPSolverName qp_solver_name_;
 
     // 13 * horizon diagonal matrix.
     const Eigen::MatrixXd qp_weights_;
@@ -443,7 +522,8 @@ MatrixXd AsBlockDiagonalMat(const std::vector<double>& qp_weights,
 
 ConvexMpc::ConvexMpc(double mass, const std::vector<double>& inertia,
     int num_legs, int planning_horizon, double timestep,
-    const std::vector<double>& qp_weights, double alpha)
+    const std::vector<double>& qp_weights, double alpha,
+      QPSolverName qp_solver_name)
     : mass_(mass),
     inv_mass_(1 / mass),
     inertia_(inertia.data()),
@@ -451,6 +531,7 @@ ConvexMpc::ConvexMpc(double mass, const std::vector<double>& inertia,
     num_legs_(num_legs),
     planning_horizon_(planning_horizon),
     timestep_(timestep),
+    qp_solver_name_(qp_solver_name),
     qp_weights_(AsBlockDiagonalMat(qp_weights, planning_horizon)),
     qp_weights_single_(AsBlockDiagonalMat(qp_weights, 1)),
     alpha_(alpha* MatrixXd::Identity(num_legs* planning_horizon* k3Dim,
@@ -624,117 +705,198 @@ std::vector<double> ConvexMpc::ComputeContactForces(
         foot_friction_coeffs[0], planning_horizon_,
         &constraint_lb_, &constraint_ub_);
     
-
     
+    
+    if (qp_solver_name_ == OSQP)
+    {
+      UpdateConstraintsMatrix(foot_friction_coeffs, planning_horizon_, num_legs_,
+          &constraint_);
+      foot_friction_coeff_ << foot_friction_coeffs[0], foot_friction_coeffs[1],
+          foot_friction_coeffs[2], foot_friction_coeffs[3];
+
+
+      Eigen::SparseMatrix<double, Eigen::ColMajor, qp_int64> objective_matrix = p_mat_.sparseView();
+      Eigen::VectorXd objective_vector = q_vec_;
+      Eigen::SparseMatrix<double, Eigen::ColMajor, qp_int64> constraint_matrix = constraint_.sparseView();
+
+      int num_variables = constraint_.cols();
+      int num_constraints = constraint_.rows();
+
+      ::OSQPSettings settings;
+      osqp_set_default_settings(&settings);
+      settings.verbose = false;
+      settings.warm_start = true;
+      settings.polish = true;
+      settings.adaptive_rho_interval = 25;
+      settings.eps_abs = 1e-3;
+      settings.eps_rel = 1e-3;
+      
+      assert(p_mat_.cols()== num_variables);
+      assert(p_mat_.rows()== num_variables);
+      assert(q_vec_.size()== num_variables);
+      assert(constraint_lb_.size() == num_constraints);
+      assert(constraint_ub_.size() == num_constraints);
+
+      VectorXd clipped_lower_bounds = constraint_lb_.cwiseMax(-OSQP_INFTY);
+      VectorXd clipped_upper_bounds = constraint_ub_.cwiseMin(OSQP_INFTY);
+
+      ::OSQPData data;
+      data.n = num_variables;
+      data.m = num_constraints;
+
+      Eigen::SparseMatrix<double, Eigen::ColMajor, qp_int64>
+          objective_matrix_upper_triangle =
+          objective_matrix.triangularView<Eigen::Upper>();
+
+      ::csc osqp_objective_matrix = {
+          objective_matrix_upper_triangle.outerIndexPtr()[num_variables],
+          num_variables,
+          num_variables,
+          const_cast<qp_int64*>(objective_matrix_upper_triangle.outerIndexPtr()),
+          const_cast<qp_int64*>(objective_matrix_upper_triangle.innerIndexPtr()),
+          const_cast<double*>(objective_matrix_upper_triangle.valuePtr()),
+          -1 };
+      data.P = &osqp_objective_matrix;
+
+      ::csc osqp_constraint_matrix = {
+          constraint_matrix.outerIndexPtr()[num_variables],
+          num_constraints,
+          num_variables,
+          const_cast<qp_int64*>(constraint_matrix.outerIndexPtr()),
+          const_cast<qp_int64*>(constraint_matrix.innerIndexPtr()),
+          const_cast<double*>(constraint_matrix.valuePtr()),
+          -1 };
+      data.A = &osqp_constraint_matrix;
+
+      data.q = const_cast<double*>(objective_vector.data());
+      data.l = clipped_lower_bounds.data();
+      data.u = clipped_upper_bounds.data();
+
+      const int return_code = 0;
+      
+      if (workspace_==0) {
+          osqp_setup(&workspace_, &data, &settings);
+          initial_run_ = false;
+      }
+      else {
+
+          UpdateConstraintsMatrix(foot_friction_coeffs, planning_horizon_,
+              num_legs_, &constraint_);
+          foot_friction_coeff_ << foot_friction_coeffs[0], foot_friction_coeffs[1],
+              foot_friction_coeffs[2], foot_friction_coeffs[3];
+              
+          c_int nnzP = objective_matrix_upper_triangle.nonZeros();
+
+          c_int nnzA = constraint_matrix.nonZeros();
+
+          int return_code = osqp_update_P_A(
+              workspace_, objective_matrix_upper_triangle.valuePtr(), OSQP_NULL, nnzP,
+              constraint_matrix.valuePtr(), OSQP_NULL, nnzA);
+          
+          return_code =
+              osqp_update_lin_cost(workspace_, objective_vector.data());
+
+
+          return_code = osqp_update_bounds(
+              workspace_, clipped_lower_bounds.data(), clipped_upper_bounds.data());
+      }
+
+      if (osqp_solve(workspace_) != 0) {
+          if (osqp_is_interrupted()) {
+              return error_result;
+          }
+      }
+      
+      Map<VectorXd> solution(qp_solution_.data(), qp_solution_.size());
+      
+      if (workspace_->info->status_val== OSQP_SOLVED) {
+          solution = -Map<const VectorXd>(workspace_->solution->x, workspace_->data->n);
+      }
+      else {
+          //LOG(WARNING) << "QP does not converge";
+          return error_result;
+      }
+      
+      return qp_solution_;
+    } else
+    {
+      
+      // Solve the QP Problem using qpOASES
     UpdateConstraintsMatrix(foot_friction_coeffs, planning_horizon_, num_legs_,
-        &constraint_);
-    foot_friction_coeff_ << foot_friction_coeffs[0], foot_friction_coeffs[1],
-        foot_friction_coeffs[2], foot_friction_coeffs[3];
+                            &constraint_);
 
-
-    Eigen::SparseMatrix<double, Eigen::ColMajor, qp_int64> objective_matrix = p_mat_.sparseView();
-    Eigen::VectorXd objective_vector = q_vec_;
-    Eigen::SparseMatrix<double, Eigen::ColMajor, qp_int64> constraint_matrix = constraint_.sparseView();
-
-    int num_variables = constraint_.cols();
-    int num_constraints = constraint_.rows();
-
-    ::OSQPSettings settings;
-    osqp_set_default_settings(&settings);
-    settings.verbose = false;
-    settings.warm_start = true;
-    settings.polish = true;
-    settings.adaptive_rho_interval = 25;
-    settings.eps_abs = 1e-3;
-    settings.eps_rel = 1e-3;
-    
-    assert(p_mat_.cols()== num_variables);
-    assert(p_mat_.rows()== num_variables);
-    assert(q_vec_.size()== num_variables);
-    assert(constraint_lb_.size() == num_constraints);
-    assert(constraint_ub_.size() == num_constraints);
-
-    VectorXd clipped_lower_bounds = constraint_lb_.cwiseMax(-OSQP_INFTY);
-    VectorXd clipped_upper_bounds = constraint_ub_.cwiseMin(OSQP_INFTY);
-
-    ::OSQPData data;
-    data.n = num_variables;
-    data.m = num_constraints;
-
-    Eigen::SparseMatrix<double, Eigen::ColMajor, qp_int64>
-        objective_matrix_upper_triangle =
-        objective_matrix.triangularView<Eigen::Upper>();
-
-    ::csc osqp_objective_matrix = {
-        objective_matrix_upper_triangle.outerIndexPtr()[num_variables],
-        num_variables,
-        num_variables,
-        const_cast<qp_int64*>(objective_matrix_upper_triangle.outerIndexPtr()),
-        const_cast<qp_int64*>(objective_matrix_upper_triangle.innerIndexPtr()),
-        const_cast<double*>(objective_matrix_upper_triangle.valuePtr()),
-        -1 };
-    data.P = &osqp_objective_matrix;
-
-    ::csc osqp_constraint_matrix = {
-        constraint_matrix.outerIndexPtr()[num_variables],
-        num_constraints,
-        num_variables,
-        const_cast<qp_int64*>(constraint_matrix.outerIndexPtr()),
-        const_cast<qp_int64*>(constraint_matrix.innerIndexPtr()),
-        const_cast<double*>(constraint_matrix.valuePtr()),
-        -1 };
-    data.A = &osqp_constraint_matrix;
-
-    data.q = const_cast<double*>(objective_vector.data());
-    data.l = clipped_lower_bounds.data();
-    data.u = clipped_upper_bounds.data();
-
-    const int return_code = 0;
-    
-    if (workspace_==0) {
-        osqp_setup(&workspace_, &data, &settings);
-        initial_run_ = false;
-    }
-    else {
-
-        UpdateConstraintsMatrix(foot_friction_coeffs, planning_horizon_,
-            num_legs_, &constraint_);
-        foot_friction_coeff_ << foot_friction_coeffs[0], foot_friction_coeffs[1],
-            foot_friction_coeffs[2], foot_friction_coeffs[3];
-            
-        c_int nnzP = objective_matrix_upper_triangle.nonZeros();
-
-        c_int nnzA = constraint_matrix.nonZeros();
-
-        int return_code = osqp_update_P_A(
-            workspace_, objective_matrix_upper_triangle.valuePtr(), OSQP_NULL, nnzP,
-            constraint_matrix.valuePtr(), OSQP_NULL, nnzA);
-        
-        return_code =
-            osqp_update_lin_cost(workspace_, objective_vector.data());
-
-
-        return_code = osqp_update_bounds(
-            workspace_, clipped_lower_bounds.data(), clipped_upper_bounds.data());
+    // To use qpOASES, we need to eleminate the zero rows/cols from the
+    // matrices when copy to qpOASES buffer
+    int num_legs_in_contact = 0;
+    for (int i = 0; i < foot_contact_states.size(); ++i) {
+      if (foot_contact_states[i]) {
+        num_legs_in_contact += 1;
+      }
     }
 
-    if (osqp_solve(workspace_) != 0) {
-        if (osqp_is_interrupted()) {
-            return error_result;
-        }
+    const int qp_dim = num_legs_in_contact * k3Dim * planning_horizon_;
+    const int constraint_dim = num_legs_in_contact * 5 * planning_horizon_;
+    std::vector<qpOASES::real_t> hessian(qp_dim * qp_dim, 0);
+    Map<RowMajorMatrixXd> hessian_mat_view(hessian.data(), qp_dim, qp_dim);
+    // Copy to the hessian
+    CopyToMatrix(p_mat_, foot_contact_states, num_legs_, planning_horizon_,
+                 k3Dim, k3Dim, false, &hessian_mat_view);
+
+    std::vector<qpOASES::real_t> g_vec(qp_dim, 0);
+    // Copy the g_vec
+    CopyToVec(q_vec_, foot_contact_states, num_legs_, planning_horizon_, k3Dim,
+              &g_vec);
+
+    std::vector<qpOASES::real_t> a_mat(qp_dim * constraint_dim, 0);
+    Map<RowMajorMatrixXd> a_mat_view(a_mat.data(), constraint_dim, qp_dim);
+    CopyToMatrix(constraint_, foot_contact_states, num_legs_, planning_horizon_,
+                 5, k3Dim, true, &a_mat_view);
+
+    std::vector<qpOASES::real_t> a_lb(constraint_dim, 0);
+    CopyToVec(constraint_lb_, foot_contact_states, num_legs_, planning_horizon_,
+              5, &a_lb);
+
+    std::vector<qpOASES::real_t> a_ub(constraint_dim, 0);
+    CopyToVec(constraint_ub_, foot_contact_states, num_legs_, planning_horizon_,
+              5, &a_ub);
+
+    auto qp_problem = QProblem(qp_dim, constraint_dim, qpOASES::HST_UNKNOWN,
+                               qpOASES::BT_TRUE);
+
+    qpOASES::Options options;
+    options.setToMPC();
+    options.printLevel = qpOASES::PL_NONE;
+    qp_problem.setOptions(options);
+
+    int max_solver_iter = 100;
+
+    qp_problem.init(hessian.data(), g_vec.data(), a_mat.data(), nullptr,
+                    nullptr, a_lb.data(), a_ub.data(), max_solver_iter,
+                    nullptr);
+
+    std::vector<qpOASES::real_t> qp_sol(qp_dim, 0);
+    qp_problem.getPrimalSolution(qp_sol.data());
+    for (auto& force : qp_sol) {
+      force = -force;
     }
-    
-    Map<VectorXd> solution(qp_solution_.data(), qp_solution_.size());
-    
-    if (workspace_->info->status_val== OSQP_SOLVED) {
-        solution = -Map<const VectorXd>(workspace_->solution->x, workspace_->data->n);
+    Map<VectorXd> qp_sol_vec(qp_sol.data(), qp_sol.size());
+
+    int buffer_index = 0;
+    for (int i = 0; i < num_legs_ * planning_horizon_; ++i) {
+      int leg_id = i % num_legs_;
+      if (foot_contact_states[leg_id] == 0) {
+        qp_solution_[i * k3Dim] = 0;
+        qp_solution_[i * k3Dim + 1] = 0;
+        qp_solution_[i * k3Dim + 2] = 0;
+      } else {
+        qp_solution_[i * k3Dim] = qp_sol[buffer_index * k3Dim];
+        qp_solution_[i * k3Dim + 1] = qp_sol[buffer_index * k3Dim + 1];
+        qp_solution_[i * k3Dim + 2] = qp_sol[buffer_index * k3Dim + 2];
+        ++buffer_index;
+      }
     }
-    else {
-        //LOG(WARNING) << "QP does not converge";
-        return error_result;
-    }
-    
     return qp_solution_;
+    }
 }
 
 
@@ -752,12 +914,18 @@ PYBIND11_MODULE(mpc_osqp, m) {
 
     )pbdoc";
 
+      
+   py::enum_<QPSolverName>(m, "QPSolverName")
+      .value("OSQP", OSQP, "OSQP")
+      .value("QPOASES", QPOASES, "QPOASES")
+      .export_values();
+      
   py::class_<ConvexMpc>(m, "ConvexMpc")
       .def(py::init<double, const std::vector<double>&, int,
-          int , double ,const std::vector<double>&  >())//optional argument?
+          int , double ,const std::vector<double>&, double,QPSolverName>())
       .def("compute_contact_forces", &ConvexMpc::ComputeContactForces)
       .def("reset_solver", &ConvexMpc::ResetSolver     );
-      
+
  
 
 #ifdef VERSION_INFO

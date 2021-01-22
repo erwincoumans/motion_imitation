@@ -245,9 +245,10 @@ def _run_example(max_time=_MAX_TIME_SECONDS):
     
     robot.Step(hybrid_action)
     
-    #if record_video:
-    p.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING,1)
-    time.sleep(0.003)
+    if record_video:
+      p.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING,1)
+
+    #time.sleep(0.003)
     current_time = robot.GetTimeSinceReset()
     p.submitProfileTiming()
   #p.stopStateLogging(logId)

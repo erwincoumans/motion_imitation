@@ -24,6 +24,7 @@ from mpc_controller import locomotion_controller
 from mpc_controller import openloop_gait_generator
 from mpc_controller import raibert_swing_leg_controller
 #from mpc_controller import torque_stance_leg_controller
+#import mpc_osqp
 from mpc_controller import torque_stance_leg_controller_quadprog as torque_stance_leg_controller
 
 
@@ -129,7 +130,9 @@ def _setup_controller(robot):
       state_estimator,
       desired_speed=desired_speed,
       desired_twisting_speed=desired_twisting_speed,
-      desired_body_height=robot.MPC_BODY_HEIGHT)
+      desired_body_height=robot.MPC_BODY_HEIGHT
+      #,qp_solver = mpc_osqp.QPOASES #or mpc_osqp.OSQP
+      )
 
   controller = locomotion_controller.LocomotionController(
       robot=robot,
