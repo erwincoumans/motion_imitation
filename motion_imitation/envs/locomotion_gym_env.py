@@ -318,7 +318,7 @@ class LocomotionGymEnv(gym.Env):
       self._pybullet_client.configureDebugVisualizer(
           self._pybullet_client.COV_ENABLE_SINGLE_STEP_RENDERING, 1)
       alpha = 1.
-      if self._show_reference_id>0:
+      if self._show_reference_id>=0:
         alpha = self._pybullet_client.readUserDebugParameter(self._show_reference_id)
       
       ref_col = [1, 1, 1, alpha]

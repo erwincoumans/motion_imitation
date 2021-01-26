@@ -84,7 +84,7 @@ import os
 platform = get_platform()
 print(platform)
 
-CXX_FLAGS = ''
+CXX_FLAGS = '-D__SUPPRESSANYOUTPUT__'
 
 
 # libraries += [current_python]
@@ -99,6 +99,7 @@ include_dirs = [
   'third_party/osqp/lin_sys/direct/qdldl',
   'third_party/osqp/lin_sys/direct/qdldl/qdldl_sources/include',
   'third_party/osqp/lin_sys/direct/qdldl/amd/include',
+  'third_party/qpoases/include',
   ]
 
 	
@@ -143,6 +144,27 @@ sources = [
 	"third_party/osqp/lin_sys/direct/qdldl/amd/src/amd_preprocess.c",
 	"third_party/osqp/lin_sys/direct/qdldl/amd/src/amd_valid.c",
 	"third_party/osqp/lin_sys/direct/qdldl/amd/src/SuiteSparse_config.c",
+	
+	
+	"third_party/qpoases/src/BLASReplacement.cpp",
+	"third_party/qpoases/src/Bounds.cpp",
+	"third_party/qpoases/src/Constraints.cpp",
+	"third_party/qpoases/src/Flipper.cpp",
+	"third_party/qpoases/src/Indexlist.cpp",
+	"third_party/qpoases/src/LAPACKReplacement.cpp",
+	"third_party/qpoases/src/Matrices.cpp",
+	"third_party/qpoases/src/MessageHandling.cpp",
+	"third_party/qpoases/src/Options.cpp",
+	"third_party/qpoases/src/OQPinterface.cpp",
+	"third_party/qpoases/src/QProblem.cpp",
+	"third_party/qpoases/src/QProblemB.cpp",
+	"third_party/qpoases/src/SolutionAnalysis.cpp",
+	"third_party/qpoases/src/SparseSolver.cpp",
+	"third_party/qpoases/src/SQProblem.cpp",
+	"third_party/qpoases/src/SQProblemSchur.cpp",
+	"third_party/qpoases/src/SubjectTo.cpp",
+	"third_party/qpoases/src/Utils.cpp",
+	
 ]
 
 if _platform == "linux" or _platform == "linux2":
