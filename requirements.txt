@@ -3,7 +3,7 @@ gym==0.17.1
 mpi4py==3.0.3
 numpy==1.17.3
 pybullet>=3.0.6
-tensorflow==1.15.4
+tensorflow==2.4.0
 tensorboard==1.15.0
 typing==3.7.4.1
 stable-baselines==2.10.0
