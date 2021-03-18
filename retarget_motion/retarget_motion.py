@@ -15,14 +15,13 @@ import pybullet_data as pd
 from motion_imitation.utilities import motion_util
 
 import retarget_config_laikago as config
-#import retarget_config_vision60 as config
+# import retarget_config_vision60 as config
 
 POS_SIZE = 3
 ROT_SIZE = 4
 DEFAULT_ROT = np.array([0, 0, 0, 1])
-FORWARD_DIR = np.array([1,  0, 0])
+FORWARD_DIR = np.array([1, 0, 0])
 
-OUTPUT_FILENAME = "retarget_motion.txt"
 GROUND_URDF_FILENAME = "plane_implicit.urdf"
 
 # reference motion
@@ -117,7 +116,6 @@ def set_pose(robot, pose):
   num_joints = pybullet.getNumJoints(robot)
   root_pos = get_root_pos(pose)
   root_rot = get_root_rot(pose)
-
   pybullet.resetBasePositionAndOrientation(robot, root_pos, root_rot)
 
   for j in range(num_joints):
@@ -184,7 +182,7 @@ def retarget_root_pose(ref_joint_pos):
   up_dir = up_dir / np.linalg.norm(up_dir)
 
   left_dir = np.cross(up_dir, forward_dir)
-  left_dir[2] = 0.0; # make the base more stable
+  left_dir[2] = 0.0 # make the base more stable
   left_dir = left_dir / np.linalg.norm(left_dir)
 
   rot_mat = np.array([[forward_dir[0], left_dir[0], up_dir[0], 0],
@@ -341,7 +339,7 @@ def main(argv):
       marker_ids = build_markers(num_markers)
     
       retarget_frames = retarget_motion(robot, joint_pos_data)
-      output_motion(retarget_frames, OUTPUT_FILENAME)
+      output_motion(retarget_frames, f"{mocap_motion[0]}.txt")
     
       f = 0
       num_frames = joint_pos_data.shape[0]
