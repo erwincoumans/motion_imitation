@@ -371,7 +371,7 @@ void CalculateQpMats(const MatrixXd& a_exp, const MatrixXd& b_exp,
     const int state_dim = ConvexMpc::kStateDim;
     MatrixXd& a_qp = *a_qp_ptr;
     a_qp.block(0, 0, state_dim, state_dim) = a_exp;
-    for (int i = 1; i < horizon - 1; ++i) {
+    for (int i = 1; i < horizon; ++i) {
         a_qp.block<state_dim, state_dim>(i * state_dim, 0) =
             a_exp * a_qp.block<state_dim, state_dim>((i - 1) * state_dim, 0);
     }
@@ -379,6 +379,7 @@ void CalculateQpMats(const MatrixXd& a_exp, const MatrixXd& b_exp,
     const int action_dim = b_exp.cols();
 
     MatrixXd& anb_aux = *anb_aux_ptr;
+    // Compute auxiliary matrix: [B_exp, A_exp * B_exp, ..., A_exp^(h-1) * B_exp]
     anb_aux.block(0, 0, state_dim, action_dim) = b_exp;
     for (int i = 1; i < horizon; ++i) {
         anb_aux.block(i * state_dim, 0, state_dim, action_dim) =
@@ -397,13 +398,22 @@ void CalculateQpMats(const MatrixXd& a_exp, const MatrixXd& b_exp,
         }
     }
 
+    // We construct the P matrix by filling in h x h submatrices, each with size
+    // action_dim x action_dim.
+    // The r_th (r in [1, h]) diagonal submatrix of P is:
+    // 2 * sum_{i=0:h-r}(B'A'^i L A^i B) + alpha, where h is the horizon.
+    // The off-diagonal submatrix at row r and column c of P is:
+    // 2 * sum_{i=0:h-c}(B'A'^{h-r-i} L A^{h-c-i} B)
     MatrixXd& p_mat = *p_mat_ptr;
+    // We first compute the submatrices at column h.
     for (int i = horizon - 1; i >= 0; --i) {
         p_mat.block(i * action_dim, (horizon - 1) * action_dim, action_dim,
             action_dim) =
             anb_aux.block((horizon - i - 1) * state_dim, 0, state_dim, action_dim)
             .transpose() *
             qp_weights_single * b_exp;
+       // Fill the lower-triangle part by transposing the corresponding
+       // upper-triangle part.
         if (i != horizon - 1) {
             p_mat.block((horizon - 1) * action_dim, i * action_dim, action_dim,
                 action_dim) =
@@ -414,6 +424,8 @@ void CalculateQpMats(const MatrixXd& a_exp, const MatrixXd& b_exp,
         }
     }
 
+    // We then fill in the submatrices in the middle by propagating the values
+    // from lower right to upper left.
     for (int i = horizon - 2; i >= 0; --i) {
         // Diagonal block.
         p_mat.block(i * action_dim, i * action_dim, action_dim, action_dim) =
@@ -434,12 +446,15 @@ void CalculateQpMats(const MatrixXd& a_exp, const MatrixXd& b_exp,
                 qp_weights_single *
                 anb_aux.block((horizon - j - 1) * state_dim, 0, state_dim,
                     action_dim);
+            // Fill the lower-triangle part by transposing the corresponding
+            // upper-triangle part.
             p_mat.block(j * action_dim, i * action_dim, action_dim, action_dim) =
                 p_mat.block(i * action_dim, j * action_dim, action_dim, action_dim)
                 .transpose();
         }
     }
 
+    // Multiply by 2 and add alpha.
     p_mat *= 2.0;
     for (int i = 0; i < horizon; ++i) {
         p_mat.block(i * action_dim, i * action_dim, action_dim, action_dim) +=
@@ -656,8 +671,8 @@ std::vector<double> ConvexMpc::ComputeContactForces(
         desired_states_[i * kStateDim + 5] = desired_com_position[2];
 
         // Prefer to stablize roll and pitch.
-        desired_states_[i * kStateDim + 6] = 0;
-        desired_states_[i * kStateDim + 7] = 0;
+        desired_states_[i * kStateDim + 6] = desired_com_angular_velocity[0];
+        desired_states_[i * kStateDim + 7] = desired_com_angular_velocity[1];
         desired_states_[i * kStateDim + 8] = desired_com_angular_velocity[2];
 
         desired_states_[i * kStateDim + 9] = desired_com_velocity[0];
