@@ -239,11 +239,11 @@ print(find_packages('.'))
 
 setup(
     name='motion_imitation',
-    version='0.0.4',
+    version='0.0.6',
     description=
     'Motion Imitation and MPC with python bindings for MPC using the osqp solver',
     long_description=
-    'Motion Imitation and MPC with python bindings for MPC using the PyBullet and the OSQP solver',
+    'Motion Imitation and MPC with python bindings for MPC using the PyBullet and the QPOASES and OSQP solver',
     url='https://github.com/google-research/motion_imitation',
     author='Erwin Coumans',
     author_email='erwincoumans@google.com',
