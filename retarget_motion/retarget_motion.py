@@ -1,7 +1,14 @@
+"""Run from motion_imitation/retarget_motion to find data correctly."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+os.sys.path.insert(0, parentdir)
 
 import time
 
@@ -14,6 +21,7 @@ import pybullet
 import pybullet_data as pd
 from motion_imitation.utilities import motion_util
 
+# import retarget_config_a1 as config
 import retarget_config_laikago as config
 # import retarget_config_vision60 as config
 
@@ -330,6 +338,8 @@ def main(argv):
     
       ground = pybullet.loadURDF(GROUND_URDF_FILENAME)
       robot = pybullet.loadURDF(config.URDF_FILENAME, config.INIT_POS, config.INIT_ROT)
+      # Set robot to default pose to bias knees in the right direction.
+      set_pose(robot, np.concatenate([config.INIT_POS, config.INIT_ROT, config.DEFAULT_JOINT_POSE]))
 
       p.removeAllUserDebugItems()
       print("mocap_name=", mocap_motion[0])
