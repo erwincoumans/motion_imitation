@@ -45,16 +45,16 @@ UPPER_LEG_JOINT_OFFSET = 0
 KNEE_JOINT_OFFSET = 0
 
 
-LAIKAGO_DEFAULT_ABDUCTION_ANGLE = 0
-LAIKAGO_DEFAULT_HIP_ANGLE = 0.9
-LAIKAGO_DEFAULT_KNEE_ANGLE = -1.8
+A1_DEFAULT_ABDUCTION_ANGLE = 0
+A1_DEFAULT_HIP_ANGLE = 0.9
+A1_DEFAULT_KNEE_ANGLE = -1.8
 NUM_LEGS = 4
 NUM_MOTORS = 12
-# Bases on the readings from Laikago's default pose.
+# Bases on the readings from A1's default pose.
 INIT_MOTOR_ANGLES = np.array([
-    LAIKAGO_DEFAULT_ABDUCTION_ANGLE,
-    LAIKAGO_DEFAULT_HIP_ANGLE,
-    LAIKAGO_DEFAULT_KNEE_ANGLE
+    A1_DEFAULT_ABDUCTION_ANGLE,
+    A1_DEFAULT_HIP_ANGLE,
+    A1_DEFAULT_KNEE_ANGLE
 ] * NUM_LEGS)
 MOTOR_NAMES = [
     "FR_hip_joint",
@@ -93,8 +93,8 @@ VELOCITY_GAIN_INDEX = 3
 TORQUE_INDEX = 4
 
 
-class LaikagoMotorModel(object):
-  """A simple motor model for Laikago.
+class A1MotorModel(object):
+  """A simple motor model for A1.
 
     When in POSITION mode, the torque is calculated according to the difference
     between current and desired joint angle, as well as the joint velocity.
@@ -245,7 +245,7 @@ class SimpleRobot(object):
     self.ReceiveObservation()
     self._kp = self.GetMotorPositionGains()
     self._kd = self.GetMotorVelocityGains()
-    self._motor_model = LaikagoMotorModel(kp=self._kp, kd=self._kd, motor_control_mode=MOTOR_CONTROL_HYBRID)
+    self._motor_model = A1MotorModel(kp=self._kp, kd=self._kd, motor_control_mode=MOTOR_CONTROL_HYBRID)
     self._SettleDownForReset(reset_time=1.0)
     self._step_counter = 0
 
@@ -433,7 +433,7 @@ class SimpleRobot(object):
         link_id=toe_id,
         joint_ids=joint_position_idxs,
         position_in_world_frame=position_in_world_frame)
-    # Joint offset is necessary for Laikago.
+    # Joint offset is necessary for A1.
     joint_angles = np.multiply(
         np.asarray(joint_angles) -
         np.asarray(self._motor_offset)[joint_position_idxs],
