@@ -1,7 +1,7 @@
 attrs==19.3.0
 gym==0.17.1
 mpi4py==3.0.3
-numpy==1.17.3
+numpy==1.22.0
 pybullet>=3.0.6
 tensorflow==1.15.4
 tensorboard==1.15.0
