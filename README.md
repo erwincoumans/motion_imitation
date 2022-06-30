@@ -13,7 +13,7 @@ Project page: https://xbpeng.github.io/projects/Robotic_Imitation/index.html
 
 ## Getting Started
 
-We use this repository with Python 3.7 or Python 3.8 on Ubuntu, MacOS and Windows.
+We use this repository with Python 3.7 on Ubuntu, MacOS and Windows.
 
 - Install MPC extension (Optional) `python3 setup.py install --user`
 
